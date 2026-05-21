@@ -1,0 +1,6 @@
+pymupdf
+easyocr
+pillow
+numpy<2.0
+mistralai
+python-dotenv

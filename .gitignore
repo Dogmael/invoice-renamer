@@ -1,0 +1,6 @@
+/Raw invoices example
+Noms établissements.txt
+Validation des factures.pdf
+.env
+.DS_Store
+*.pdf
