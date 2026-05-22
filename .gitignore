@@ -4,3 +4,4 @@ Validation des factures.pdf
 .env
 .DS_Store
 *.pdf
+prompt.txt
