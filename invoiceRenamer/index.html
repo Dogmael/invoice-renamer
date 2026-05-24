@@ -1,26 +1,30 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="stylesheet" href="/src/styles.css" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Invoice renamer</title>
-    <script type="module" src="/src/main.ts" defer></script>
-  </head>
 
-  <body>
-    <div class="page-container">
-      <div class="centered-box">
-        <!-- Zone de texte -->
-        <div class="text-zone">
-          <h1>Invoice renamer</h1>
-        </div>
-  
-        <!-- Zone de drop -->
+<head>
+  <meta charset="UTF-8" />
+  <link rel="stylesheet" href="/src/styles.css" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Invoice renamer</title>
+  <script type="module" src="/src/main.ts" defer></script>
+</head>
+
+<body>
+  <div class="page-container">
+    <div class="centered-box">
+      <!-- Zone de texte -->
+      <div class="text-zone">
+        <h1>Invoice renamer</h1>
+      </div>
+
+      <!-- Zone de drop -->
+      <div class="drop-zone-container" id="dropZoneContainer">
         <div class="drop-zone" id="dropZone">
           <p>📁 Déposez votre fichier ici</p>
           <input type="file" id="fileInput" style="display: none;">
         </div>
       </div>
-  </body>
+    </div>
+</body>
+
 </html>
