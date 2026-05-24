@@ -1,0 +1,60 @@
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  font-family: system-ui;
+  background-color: rgb(201, 201, 201);
+}
+
+
+    /* Conteneur principal : centre tout */
+    .page-container {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    /* Carré/rectangle centré (ajuste la taille ici) */
+    .centered-box {
+      width: 400px;
+      height: 500px; /* Ajuste pour un carré (400px) ou un rectangle */
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      display: flex;
+      flex-direction: column;
+      padding: 24px;
+      gap: 20px; /* Espace entre texte et drop zone */
+    }
+
+    /* Zone de texte (titre/instructions) */
+    .text-zone {
+      text-align: center;
+      flex: 0 0 auto; /* Prend l'espace nécessaire */
+    }
+    .text-zone h1 {
+      margin: 0;
+      color: #333;
+      font-size: 24px;
+    }
+    .text-zone p {
+      margin: 10px 0 0;
+      color: #666;
+      font-size: 14px;
+    }
+
+    /* Zone de drop (rectangle) */
+    .drop-zone {
+      flex: 1; /* Prend le reste de l'espace */
+      border: 2px dashed #ccc;
+      border-radius: 8px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+      cursor: pointer;
+      transition: border-color 0.3s;
+    }
