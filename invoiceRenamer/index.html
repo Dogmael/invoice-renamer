@@ -12,30 +12,44 @@
 <body>
   <div class="page-container">
     <div class="centered-box">
-      <!-- Zone de texte -->
       <div class="text-zone">
         <h1>InvoiceRenamer</h1>
       </div>
 
-      <!-- Zone de drop -->
+      <div class="files-toolbar" id="filesToolbar">
+        <button class="clear-all-button" id="clearAllButton" type="button">Clear all</button>
+      </div>
+
       <div class="drop-zone-container" id="dropZoneContainer">
         <div class="drop-zone" id="dropZone">
-          <div class="drop-zone-content">
-            <div class="drop-zone-icon">
-              <svg class="pdf-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640">
+          <div class="drop-zone-content" id="dropZoneContent">
+            <div class="drop-panel drop-panel--empty" id="uploadZone">
+              <svg class="drop-panel__icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640" aria-hidden="true">
                 <path
                   d="M320 96L192 96C174.3 96 160 110.3 160 128L160 512C160 529.7 174.3 544 192 544L448 544C465.7 544 480 529.7 480 512L480 256L384 256C348.7 256 320 227.3 320 192L320 96zM466.7 224L352 109.3L352 192C352 209.7 366.3 224 384 224L466.7 224zM128 128C128 92.7 156.7 64 192 64L325.5 64C342.5 64 358.8 70.7 370.8 82.7L493.3 205.3C505.3 217.3 512 233.6 512 250.6L512 512C512 547.3 483.3 576 448 576L192 576C156.7 576 128 547.3 128 512L128 128z" />
               </svg>
-            </div>
-            <div class="drop-zone-actions">
-              <button class="select-button" id="selectButton">Select PDF files</button>
-              <p class="darg-and-drop-files-hint">or drag and drop files here</p>
+              <button class="btn-outline" id="selectButton" type="button">Select PDF files</button>
+              <p class="drop-panel__hint">or drag and drop files here</p>
             </div>
           </div>
-          <input type="file" id="fileInput" style="display: none;">
+
+          <div class="files-view hidden" id="filesView">
+            <ul class="file-list" id="fileList"></ul>
+
+            <div class="drop-panel" id="addMoreZone">
+              <svg class="drop-panel__icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640" aria-hidden="true">
+                <path
+                  d="M320 96L192 96C174.3 96 160 110.3 160 128L160 512C160 529.7 174.3 544 192 544L448 544C465.7 544 480 529.7 480 512L480 256L384 256C348.7 256 320 227.3 320 192L320 96zM466.7 224L352 109.3L352 192C352 209.7 366.3 224 384 224L466.7 224zM128 128C128 92.7 156.7 64 192 64L325.5 64C342.5 64 358.8 70.7 370.8 82.7L493.3 205.3C505.3 217.3 512 233.6 512 250.6L512 512C512 547.3 483.3 576 448 576L192 576C156.7 576 128 547.3 128 512L128 128z" />
+              </svg>
+              <button class="btn-outline" id="addMoreButton" type="button">Add more files</button>
+            </div>
+
+            <button class="process-button" id="processButton" type="button">Process 0 files</button>
+          </div>
         </div>
       </div>
     </div>
+  </div>
 </body>
 
 </html>
