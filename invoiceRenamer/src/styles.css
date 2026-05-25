@@ -114,8 +114,6 @@ body {
 .drop-zone {
   flex: 1;
   min-height: 0;
-  border-radius: calc(var(--border-radius) - 4px);
-  border: 1px solid var(--border-color);
   background-color: white;
   display: flex;
   flex-direction: column;
@@ -210,7 +208,38 @@ body {
   overflow-y: auto;
 }
 
+.progress-bar {
+  width: 100%;
+  height: 0.35rem;
+  border-radius: 999px;
+  background-color: #ececec;
+  overflow: hidden;
+}
+
+.progress-bar--file {
+  margin-top: 0.35rem;
+  height: 0.25rem;
+}
+
+.progress-bar__fill {
+  height: 100%;
+  width: 0%;
+  border-radius: inherit;
+  background-color: var(--primary-color);
+  transition: width 0.25s ease;
+}
+
+.progress-bar--active .progress-bar__fill,
+.progress-bar--done .progress-bar__fill {
+  background-color: var(--primary-color);
+}
+
+.progress-bar--error .progress-bar__fill {
+  background-color: #c0392b;
+}
+
 .process-button {
+  position: relative;
   display: block;
   width: calc(100% - 2rem);
   margin: 0.75rem auto 0.5rem;
@@ -222,17 +251,40 @@ body {
   font-size: 1rem;
   font-weight: 500;
   cursor: pointer;
-  transition: background-color 0.2s ease;
+  overflow: hidden;
   flex-shrink: 0;
 }
 
-.process-button:hover:not(:disabled) {
-  background-color: color-mix(in srgb, var(--primary-color) 85%, black);
+.process-button__fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 0%;
+  background-color: color-mix(in srgb, var(--primary-color) 65%, #065a82);
+  transition: width 0.25s ease;
 }
 
-.process-button:disabled {
+.process-button__label {
+  position: relative;
+  z-index: 1;
+}
+
+.process-button:hover:not(:disabled) {
+  filter: brightness(1.05);
+}
+
+.process-button:disabled:not(.process-button--processing) {
   opacity: 0.45;
   cursor: not-allowed;
+}
+
+.process-button--processing {
+  background-color: color-mix(in srgb, var(--primary-color) 45%, white);
+  color: white;
+}
+
+.process-button--processing:disabled {
+  opacity: 1;
+  cursor: pointer;
 }
 
 .file-item {
@@ -317,9 +369,48 @@ body {
   font-weight: 600;
   line-height: 1.25;
   color: #1a1a1a;
+  min-width: 0;
+}
+
+.file-item__name-current {
+  display: block;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.file-item__rename {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+.file-item__name-old {
+  color: var(--text-muted);
+  font-weight: 500;
+  text-decoration: line-through;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 0 1 auto;
+  max-width: 45%;
+}
+
+.file-item__rename-arrow {
+  flex-shrink: 0;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  line-height: 1;
+}
+
+.file-item__name-new {
+  color: #1a1a1a;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+  flex: 1 1 auto;
 }
 
 .file-item__meta {
@@ -330,6 +421,22 @@ body {
   font-size: 0.75rem;
   line-height: 1.2;
   color: var(--text-muted);
+}
+
+.file-item__status--processing {
+  color: var(--primary-color);
+}
+
+.file-item__status--done {
+  color: #2e8b57;
+}
+
+.file-item__status--error {
+  color: #c0392b;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 14rem;
 }
 
 .file-item__remove {
