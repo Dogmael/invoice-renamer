@@ -1,15 +1,22 @@
+mod i18n;
 mod mistral;
 mod pdf_utils;
 mod processor;
 
 use serde::Serialize;
 use std::path::Path;
+use tauri::Emitter;
 
 #[derive(Serialize)]
 struct FileInfo {
     path: String,
     name: String,
     size: u64,
+}
+
+#[tauri::command]
+fn get_system_locale() -> String {
+    sys_locale::get_locale().unwrap_or_else(|| "en".to_string())
 }
 
 #[tauri::command]
@@ -21,7 +28,7 @@ fn get_files_info(paths: Vec<String>) -> Result<Vec<FileInfo>, String> {
             let name = Path::new(&path)
                 .file_name()
                 .and_then(|n| n.to_str())
-                .ok_or_else(|| format!("Invalid file name for path: {path}"))?
+                .ok_or_else(|| crate::i18n::invalid_file_name(&path))?
                 .to_string();
 
             Ok(FileInfo {
@@ -43,8 +50,12 @@ async fn process_invoices(
 }
 
 #[tauri::command]
-fn cancel_processing(state: tauri::State<'_, processor::ProcessingState>) {
+fn cancel_processing(
+    app: tauri::AppHandle,
+    state: tauri::State<'_, processor::ProcessingState>,
+) {
     state.request_cancel();
+    let _ = app.emit("process-cancelled", ());
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -54,6 +65,7 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
         .invoke_handler(tauri::generate_handler![
+            get_system_locale,
             get_files_info,
             process_invoices,
             cancel_processing

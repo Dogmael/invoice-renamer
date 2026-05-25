@@ -7,7 +7,7 @@ pub fn extract_native_text_first_page(pdf_path: &Path) -> Result<String, String>
     pages
         .into_iter()
         .next()
-        .ok_or_else(|| "PDF has no pages".to_string())
+        .ok_or_else(|| "error.pdf_no_pages".to_string())
 }
 
 pub fn pdf_to_base64(pdf_path: &Path) -> Result<String, String> {

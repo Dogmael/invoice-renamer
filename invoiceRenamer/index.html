@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="">
 
 <head>
   <meta charset="UTF-8" />
@@ -44,10 +44,19 @@
               <button class="btn-outline" id="addMoreButton" type="button">Add more files</button>
             </div>
 
-            <button class="process-button" id="processButton" type="button">
-              <span class="process-button__fill" id="processButtonFill"></span>
-              <span class="process-button__label" id="processButtonLabel">Process 0 files</span>
-            </button>
+            <div class="process-actions" id="processActions">
+              <button class="process-button" id="processButton" type="button">
+                <span class="process-button__fill" id="processButtonFill"></span>
+                <span class="process-button__label" id="processButtonLabel">Process 0 files</span>
+              </button>
+              <button
+                class="process-cancel-button hidden"
+                id="cancelProcessButton"
+                type="button"
+              >
+                Cancel
+              </button>
+            </div>
           </div>
         </div>
       </div>
