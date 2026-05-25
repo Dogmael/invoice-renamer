@@ -2,6 +2,13 @@ import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { open } from "@tauri-apps/plugin-dialog";
+import {
+  applyDocumentLocale,
+  initLocale,
+  statusText,
+  t,
+  translateBackendError,
+} from "./i18n";
 
 type FileStatus = "pending" | "processing" | "done" | "error";
 
@@ -45,6 +52,7 @@ const clearAllButton = document.querySelector<HTMLButtonElement>("#clearAllButto
 const processButton = document.querySelector<HTMLButtonElement>("#processButton")!;
 const processButtonFill = document.querySelector<HTMLElement>("#processButtonFill")!;
 const processButtonLabel = document.querySelector<HTMLElement>("#processButtonLabel")!;
+const cancelProcessButton = document.querySelector<HTMLButtonElement>("#cancelProcessButton")!;
 
 let files: FileEntry[] = [];
 let draggedFileId: string | null = null;
@@ -72,7 +80,7 @@ function statusLabel(file: FileEntry): string {
     return file.error;
   }
 
-  return file.status.charAt(0).toUpperCase() + file.status.slice(1);
+  return statusText(file.status);
 }
 
 function getGlobalProgressPercent(): number {
@@ -90,19 +98,43 @@ function getGlobalProgressPercent(): number {
   );
 }
 
+function applyCancelledState() {
+  isProcessing = false;
+  batchTotal = 0;
+  batchCompleted = 0;
+  cancelProcessButton.disabled = false;
+  files.forEach((file) => {
+    if (file.status === "processing") {
+      file.status = "pending";
+      file.progress = 0;
+      file.error = undefined;
+    }
+  });
+  renderFileList();
+  updateProcessButton();
+}
+
 function updateProcessButton() {
   const pendingCount = files.filter((file) => file.status === "pending").length;
   const hasPending = pendingCount > 0;
   const globalPercent = getGlobalProgressPercent();
 
   processButton.classList.toggle("process-button--processing", isProcessing);
+  cancelProcessButton.classList.toggle("hidden", !isProcessing);
 
   if (isProcessing && batchTotal > 0) {
-    processButtonLabel.textContent = `Cancel · ${globalPercent}%`;
+    const currentIndex = Math.min(batchCompleted + 1, batchTotal);
+    processButtonLabel.textContent = t("processingProgress", {
+      current: currentIndex,
+      total: batchTotal,
+      percent: globalPercent,
+    });
     processButtonFill.style.width = `${globalPercent}%`;
   } else {
     processButtonLabel.textContent =
-      pendingCount === 1 ? "Process 1 file" : `Process ${pendingCount || files.length} files`;
+      pendingCount === 1
+        ? t("processOneFile")
+        : t("processManyFiles", { count: pendingCount || files.length });
     processButtonFill.style.width = "0%";
   }
 
@@ -143,7 +175,7 @@ function applyProgressUpdate(event: ProcessProgressEvent) {
   }
 
   if (event.error) {
-    file.error = event.error;
+    file.error = translateBackendError(event.error);
   }
 
   renderFileList();
@@ -207,7 +239,7 @@ function renderFileList() {
         </p>
         ${fileProgressBarHtml(file)}
       </div>
-      <button class="file-item__remove" type="button" aria-label="Remove file" ${isProcessing ? "disabled" : ""}>
+      <button class="file-item__remove" type="button" aria-label="${t("removeFileAria")}" ${isProcessing ? "disabled" : ""}>
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" aria-hidden="true">
           <path d="M18 6L6 18M6 6l12 12" />
         </svg>
@@ -331,7 +363,7 @@ async function selectFiles() {
 
   const selected = await open({
     multiple: true,
-    filters: [{ name: "PDF", extensions: ["pdf"] }],
+    filters: [{ name: t("pdfFilter"), extensions: ["pdf"] }],
   });
 
   if (!selected) {
@@ -342,12 +374,17 @@ async function selectFiles() {
   await addFilesFromPaths(paths);
 }
 
-async function processFiles() {
-  if (isProcessing) {
-    await invoke("cancel_processing");
+async function cancelProcessing() {
+  if (!isProcessing) {
     return;
   }
 
+  cancelProcessButton.disabled = true;
+  applyCancelledState();
+  void invoke("cancel_processing");
+}
+
+async function processFiles() {
   const pendingFiles = files.filter((file) => file.status === "pending");
   if (pendingFiles.length === 0) {
     return;
@@ -366,7 +403,9 @@ async function processFiles() {
       paths: pendingFiles.map((file) => file.path),
     });
   } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
+    const message = translateBackendError(
+      error instanceof Error ? error.message : String(error),
+    );
     pendingFiles.forEach((file) => {
       file.status = "error";
       file.error = message;
@@ -391,20 +430,25 @@ function setDropZoneActive(active: boolean) {
   targetZone.classList.toggle("drop-panel--active", active);
 }
 
+function applyStaticTranslations(): void {
+  applyDocumentLocale();
+  clearAllButton.textContent = t("clearAll");
+  selectButton.textContent = t("selectPdfFiles");
+  addMoreButton.textContent = t("addMoreFiles");
+  cancelProcessButton.textContent = t("cancelProcessing");
+  cancelProcessButton.setAttribute("aria-label", t("cancelProcessingAria"));
+  document.querySelector<HTMLElement>(".drop-panel__hint")!.textContent = t("dropHint");
+}
+
 window.addEventListener("DOMContentLoaded", async () => {
+  await initLocale();
+  applyStaticTranslations();
   await listen<ProcessProgressEvent>("process-progress", (event) => {
     applyProgressUpdate(event.payload);
   });
 
   await listen("process-cancelled", () => {
-    files.forEach((file) => {
-      if (file.status === "processing") {
-        file.status = "pending";
-        file.progress = 0;
-        file.error = undefined;
-      }
-    });
-    renderFileList();
+    applyCancelledState();
   });
 
   selectButton.addEventListener("click", () => {
@@ -421,6 +465,10 @@ window.addEventListener("DOMContentLoaded", async () => {
 
   processButton.addEventListener("click", () => {
     void processFiles();
+  });
+
+  cancelProcessButton.addEventListener("click", () => {
+    void cancelProcessing();
   });
 
   const appWindow = getCurrentWindow();

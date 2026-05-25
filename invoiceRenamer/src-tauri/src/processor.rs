@@ -29,6 +29,10 @@ impl ProcessingState {
     pub fn is_cancelled(&self) -> bool {
         self.cancel_requested.load(Ordering::SeqCst)
     }
+
+    pub fn cancel_flag(&self) -> Arc<AtomicBool> {
+        Arc::clone(&self.cancel_requested)
+    }
 }
 
 #[derive(Clone, Serialize)]
@@ -76,7 +80,7 @@ pub fn sanitize_filename(text: &str) -> String {
 fn rename_with_dedup(pdf_path: &Path, new_pdf_name: &str) -> Result<PathBuf, String> {
     let folder_path = pdf_path
         .parent()
-        .ok_or_else(|| "Could not determine parent folder".to_string())?;
+        .ok_or_else(|| "error.no_parent_folder".to_string())?;
 
     let mut counter = 1;
     let mut new_pdf_path = folder_path.join(format!("{new_pdf_name}.pdf"));
@@ -87,10 +91,10 @@ fn rename_with_dedup(pdf_path: &Path, new_pdf_name: &str) -> Result<PathBuf, Str
     }
 
     std::fs::rename(pdf_path, &new_pdf_path).map_err(|e| {
-        format!(
-            "Could not rename {} to {}: {e}",
-            pdf_path.display(),
-            new_pdf_path.display()
+        crate::i18n::rename_failed(
+            &pdf_path.display().to_string(),
+            &new_pdf_path.display().to_string(),
+            &e.to_string(),
         )
     })?;
 
@@ -175,6 +179,8 @@ async fn process_single_pdf(
         ),
     );
 
+    let cancel_flag = state.cancel_flag();
+
     let result = async {
         let native_text = pdf_utils::extract_native_text_first_page(pdf_path)?;
         if state.is_cancelled() {
@@ -196,7 +202,7 @@ async fn process_single_pdf(
             ),
         );
 
-        let ocr_text = client.ocr_first_page(pdf_path).await?;
+        let ocr_text = client.ocr_first_page(pdf_path, &cancel_flag).await?;
         if state.is_cancelled() {
             return Err("__cancelled__".to_string());
         }
@@ -217,7 +223,7 @@ async fn process_single_pdf(
         );
 
         let raw_name = client
-            .generate_filename(prompt, &native_text, &ocr_text)
+            .generate_filename(prompt, &native_text, &ocr_text, &cancel_flag)
             .await?;
         if state.is_cancelled() {
             return Err("__cancelled__".to_string());
@@ -241,7 +247,7 @@ async fn process_single_pdf(
         let new_pdf_name = sanitize_filename(&raw_name);
 
         if new_pdf_name.is_empty() {
-            return Err("Generated filename is empty".to_string());
+            return Err("error.empty_filename".to_string());
         }
 
         let new_pdf_path = rename_with_dedup(pdf_path, &new_pdf_name)?;
@@ -336,7 +342,7 @@ pub async fn process_invoices(
 
         let pdf_path = PathBuf::from(&path);
         if !pdf_path.exists() {
-            let error = format!("File not found: {path}");
+            let error = crate::i18n::file_not_found(&path);
             completed_count += 1;
             emit_progress(
                 &app,
