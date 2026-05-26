@@ -3,7 +3,7 @@ use serde::Serialize;
 use serde_json::{json, Value};
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use std::time::Duration;
 use tauri::{AppHandle, Manager};
 
@@ -24,6 +24,14 @@ Utilise des underscores, sans accents, sans caractères spéciaux.";
 pub struct MistralApiKeyInfo {
     pub has_key: bool,
     pub preview: Option<String>,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct MistralApiKeyState {
+    pub has_key: bool,
+    pub preview: Option<String>,
+    pub validation: Option<String>,
 }
 
 pub struct MistralClient {
@@ -191,6 +199,34 @@ pub fn get_api_key_info() -> Result<MistralApiKeyInfo, String> {
     }
 }
 
+pub async fn get_api_key_state(validate: bool) -> Result<MistralApiKeyState, String> {
+    match read_api_key() {
+        Ok(key) => {
+            let validation = if validate {
+                Some(if validate_api_key(&key).await.is_ok() {
+                    "valid".to_string()
+                } else {
+                    "invalid".to_string()
+                })
+            } else {
+                None
+            };
+
+            Ok(MistralApiKeyState {
+                has_key: true,
+                preview: Some(mask_api_key(&key)),
+                validation,
+            })
+        }
+        Err(error) if error == "error.mistral_api_key_missing" => Ok(MistralApiKeyState {
+            has_key: false,
+            preview: None,
+            validation: None,
+        }),
+        Err(error) => Err(error),
+    }
+}
+
 pub fn get_api_key_preview() -> Result<Option<String>, String> {
     Ok(get_api_key_info()?.preview)
 }
@@ -243,11 +279,13 @@ pub fn set_api_key(api_key: &str) -> Result<MistralApiKeyInfo, String> {
     entry
         .set_password(api_key)
         .map_err(map_keyring_error)?;
+    set_api_key_cache(api_key.to_string());
 
     Ok(api_key_info_from_key(api_key))
 }
 
 pub fn clear_api_key() -> Result<(), String> {
+    clear_api_key_cache();
     let entry = keyring_entry()?;
     match entry.delete_credential() {
         Ok(()) => Ok(()),
@@ -262,10 +300,23 @@ pub fn clear_api_key() -> Result<(), String> {
 }
 
 fn read_api_key() -> Result<String, String> {
+    if let Ok(cache) = API_KEY_CACHE.lock() {
+        if let Some(key) = cache.as_ref() {
+            return Ok(key.clone());
+        }
+    }
+
+    let key = read_api_key_from_keyring()?;
+    set_api_key_cache(key.clone());
+    Ok(key)
+}
+
+fn read_api_key_from_keyring() -> Result<String, String> {
     let entry = keyring_entry()?;
     match entry.get_password() {
         Ok(api_key) => {
             if api_key.trim().is_empty() {
+                clear_api_key_cache();
                 Err("error.mistral_api_key_missing".to_string())
             } else {
                 Ok(api_key)
@@ -273,11 +324,26 @@ fn read_api_key() -> Result<String, String> {
         }
         Err(error) => {
             if is_missing_keyring_entry(&error) {
+                clear_api_key_cache();
                 Err("error.mistral_api_key_missing".to_string())
             } else {
                 Err(map_keyring_error(error))
             }
         }
+    }
+}
+
+static API_KEY_CACHE: Mutex<Option<String>> = Mutex::new(None);
+
+fn set_api_key_cache(api_key: String) {
+    if let Ok(mut cache) = API_KEY_CACHE.lock() {
+        *cache = Some(api_key);
+    }
+}
+
+fn clear_api_key_cache() {
+    if let Ok(mut cache) = API_KEY_CACHE.lock() {
+        *cache = None;
     }
 }
 

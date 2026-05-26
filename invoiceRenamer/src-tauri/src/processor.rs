@@ -77,6 +77,29 @@ pub fn sanitize_filename(text: &str) -> String {
     safe.trim_matches('_').to_string()
 }
 
+fn failed_filename_base(locale: &str) -> &'static str {
+    if locale.to_lowercase().starts_with("fr") {
+        "Echoue"
+    } else {
+        "Failed"
+    }
+}
+
+fn rename_failed_invoice(pdf_path: &Path, locale: &str) -> Option<(String, String)> {
+    let failed_name = failed_filename_base(locale);
+    let new_pdf_path = rename_with_dedup(pdf_path, failed_name).ok()?;
+    let new_name = new_pdf_path
+        .file_name()
+        .and_then(|name| name.to_str())
+        .unwrap_or(failed_name)
+        .to_string();
+
+    Some((
+        new_pdf_path.to_string_lossy().to_string(),
+        new_name,
+    ))
+}
+
 fn rename_with_dedup(pdf_path: &Path, new_pdf_name: &str) -> Result<PathBuf, String> {
     let folder_path = pdf_path
         .parent()
@@ -153,6 +176,7 @@ async fn process_single_pdf(
     pdf_path: &Path,
     client: &MistralClient,
     prompt: &str,
+    locale: &str,
     completed_count: usize,
     total_count: usize,
     state: &ProcessingState,
@@ -292,14 +316,18 @@ async fn process_single_pdf(
             })
         }
         Err(error) => {
+            let (new_path, new_name) = rename_failed_invoice(pdf_path, locale)
+                .map(|(path, name)| (Some(path), Some(name)))
+                .unwrap_or((None, None));
+
             emit_progress(
                 app,
                 progress_event(
                     path_string.clone(),
                     "error",
                     progress,
-                    None,
-                    None,
+                    new_path.clone(),
+                    new_name.clone(),
                     Some(error.clone()),
                     Some(next_completed),
                     Some(total_count),
@@ -308,8 +336,8 @@ async fn process_single_pdf(
 
             Some(ProcessFileResult {
                 path: path_string,
-                new_path: None,
-                new_name: None,
+                new_path,
+                new_name,
                 error: Some(error),
             })
         }
@@ -319,6 +347,7 @@ async fn process_single_pdf(
 pub async fn process_invoices(
     app: AppHandle,
     paths: Vec<String>,
+    locale: String,
     state: &ProcessingState,
 ) -> Result<Vec<ProcessFileResult>, String> {
     if paths.is_empty() {
@@ -371,6 +400,7 @@ pub async fn process_invoices(
             &pdf_path,
             &client,
             &prompt,
+            &locale,
             completed_count,
             total_count,
             state,
