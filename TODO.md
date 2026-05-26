@@ -17,3 +17,7 @@ Ajouter log/historique des traitements
 Mettre prompt perso pour les choses du genre : "remboursé par virement à Tiphaine le 22/04/2026".
 
 Afficher les nom complet au survol. Un hint sur le logo setting ?
+
+MAJ auto soft
+
+Verifier commit git que aucune info perso et mettre en place CI/CD.

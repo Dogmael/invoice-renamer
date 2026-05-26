@@ -68,9 +68,8 @@ const settingsButton = document.querySelector<HTMLButtonElement>("#settingsButto
 const settingsModal = document.querySelector<HTMLElement>("#settingsModal")!;
 const settingsBackdrop = document.querySelector<HTMLElement>("#settingsBackdrop")!;
 const closeSettingsButton = document.querySelector<HTMLButtonElement>("#closeSettingsButton")!;
+const promptSavedStatus = document.querySelector<HTMLElement>("#promptSavedStatus")!;
 const promptInput = document.querySelector<HTMLTextAreaElement>("#promptInput")!;
-const savePromptButton = document.querySelector<HTMLButtonElement>("#savePromptButton")!;
-const cancelPromptButton = document.querySelector<HTMLButtonElement>("#cancelPromptButton")!;
 const apiKeyInput = document.querySelector<HTMLInputElement>("#apiKeyInput")!;
 const apiKeySavedView = document.querySelector<HTMLElement>("#apiKeySavedView")!;
 const apiKeyEditView = document.querySelector<HTMLElement>("#apiKeyEditView")!;
@@ -91,6 +90,7 @@ let isReplacingApiKey = false;
 let isSavingApiKey = false;
 let apiKeyValidationState: ApiKeyValidationState = "unknown";
 let savedPrompt = "";
+let promptSavePromise: Promise<boolean> | null = null;
 
 function getGlobalProgressPercent(): number {
   if (!isProcessing || batchTotal === 0) {
@@ -240,23 +240,52 @@ async function refreshApiKeyState(validateStored = false): Promise<void> {
   }
 }
 
-function promptHasUnsavedChanges(): boolean {
-  return promptInput.value !== savedPrompt;
+function setPromptSavedVisible(visible: boolean): void {
+  promptSavedStatus.classList.toggle("hidden", !visible);
 }
 
-function updatePromptUi(): void {
-  const isDirty = promptHasUnsavedChanges();
+function handlePromptInput(): void {
+  setPromptSavedVisible(false);
+}
 
-  promptInput.classList.toggle("settings-section__textarea--dirty", isDirty);
-  cancelPromptButton.classList.toggle("hidden", !isDirty);
-  savePromptButton.disabled = !isDirty || promptInput.value.trim().length === 0;
+async function savePromptIfNeeded(): Promise<boolean> {
+  if (promptSavePromise) {
+    return promptSavePromise;
+  }
+
+  const prompt = promptInput.value;
+  if (prompt === savedPrompt) {
+    return true;
+  }
+
+  if (prompt.trim().length === 0) {
+    return false;
+  }
+
+  promptSavePromise = (async () => {
+    try {
+      await invoke("set_prompt", { prompt });
+      savedPrompt = prompt;
+      setPromptSavedVisible(true);
+      return true;
+    } catch (error) {
+      console.error(translateBackendError(error instanceof Error ? error.message : String(error)));
+      return false;
+    }
+  })();
+
+  try {
+    return await promptSavePromise;
+  } finally {
+    promptSavePromise = null;
+  }
 }
 
 async function refreshPromptState(): Promise<void> {
   const prompt = await invoke<string>("get_prompt");
   savedPrompt = prompt;
   promptInput.value = prompt;
-  updatePromptUi();
+  setPromptSavedVisible(false);
 }
 
 async function refreshSettingsState(): Promise<void> {
@@ -267,18 +296,19 @@ async function refreshSettingsState(): Promise<void> {
   }
 }
 
-function hasUnsavedSettingsChanges(): boolean {
-  return apiKeyHasUnsavedDraft() || promptHasUnsavedChanges();
-}
-
 async function openSettings(): Promise<void> {
   settingsModal.classList.remove("hidden");
   await refreshSettingsState();
 }
 
 async function requestCloseSettings(): Promise<void> {
-  if (hasUnsavedSettingsChanges()) {
-    const discard = await confirm(t("unsavedSettingsWarning"), {
+  const promptSaved = await savePromptIfNeeded();
+  if (!promptSaved) {
+    return;
+  }
+
+  if (apiKeyHasUnsavedDraft()) {
+    const discard = await confirm(t("unsavedApiKeyWarning"), {
       title: t("settingsTitle"),
       kind: "warning",
       okLabel: t("discardChanges"),
@@ -291,8 +321,6 @@ async function requestCloseSettings(): Promise<void> {
 
   isReplacingApiKey = false;
   apiKeyInput.value = "";
-  promptInput.value = savedPrompt;
-  updatePromptUi();
   settingsModal.classList.add("hidden");
 }
 
@@ -307,26 +335,6 @@ function cancelApiKeyEdit(): void {
   isReplacingApiKey = false;
   apiKeyInput.value = "";
   updateApiKeyUi();
-}
-
-async function savePrompt(): Promise<void> {
-  const prompt = promptInput.value;
-  if (prompt.trim().length === 0) {
-    return;
-  }
-
-  try {
-    await invoke("set_prompt", { prompt });
-    savedPrompt = prompt;
-    updatePromptUi();
-  } catch (error) {
-    console.error(translateBackendError(error instanceof Error ? error.message : String(error)));
-  }
-}
-
-function cancelPromptEdit(): void {
-  promptInput.value = savedPrompt;
-  updatePromptUi();
 }
 
 async function saveApiKey(): Promise<void> {
@@ -689,8 +697,7 @@ function applyStaticTranslations(): void {
   settingsButton.setAttribute("aria-label", t("openSettingsAria"));
   document.querySelector<HTMLElement>("#settingsTitle")!.textContent = t("settingsTitle");
   document.querySelector<HTMLElement>("#promptLabelText")!.textContent = t("promptLabel");
-  savePromptButton.textContent = t("savePrompt");
-  cancelPromptButton.textContent = t("cancelPromptEdit");
+  promptSavedStatus.textContent = t("promptSaveSaved");
   document.querySelector<HTMLElement>("#apiKeyLabelText")!.textContent = t("apiKeyLabel");
   apiKeyInput.placeholder = t("apiKeyPlaceholderMissing");
   saveApiKeyButton.textContent = t("saveApiKey");
@@ -746,16 +753,12 @@ window.addEventListener("DOMContentLoaded", async () => {
     void requestCloseSettings();
   });
 
-  savePromptButton.addEventListener("click", () => {
-    void savePrompt();
-  });
-
-  cancelPromptButton.addEventListener("click", () => {
-    cancelPromptEdit();
-  });
-
   promptInput.addEventListener("input", () => {
-    updatePromptUi();
+    handlePromptInput();
+  });
+
+  promptInput.addEventListener("blur", () => {
+    void savePromptIfNeeded();
   });
 
   saveApiKeyButton.addEventListener("click", () => {

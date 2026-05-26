@@ -732,9 +732,23 @@ body {
   overflow-y: auto;
 }
 
-.settings-section__textarea--dirty {
-  border-color: #d4a574;
-  background-color: #fffdf9;
+.prompt-field {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+}
+
+.prompt-field__saved {
+  position: absolute;
+  right: 0;
+  bottom: 100%;
+  margin-bottom: 0.35rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  line-height: 1;
+  color: var(--text-muted);
+  white-space: nowrap;
 }
 
 .settings-section__action {

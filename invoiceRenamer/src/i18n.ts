@@ -15,9 +15,7 @@ type MessageKey =
   | "openSettingsAria"
   | "closeSettingsAria"
   | "promptLabel"
-  | "savePrompt"
-  | "cancelPromptEdit"
-  | "unsavedSettingsWarning"
+  | "promptSaveSaved"
   | "apiKeyLabel"
   | "apiKeyPlaceholderMissing"
   | "saveApiKey"
@@ -71,9 +69,7 @@ const messages: Record<Locale, Record<MessageKey, string>> = {
     openSettingsAria: "Open settings",
     closeSettingsAria: "Close settings",
     promptLabel: "Prompt",
-    savePrompt: "Save prompt",
-    cancelPromptEdit: "Cancel",
-    unsavedSettingsWarning: "You have unsaved changes. Discard them?",
+    promptSaveSaved: "Saved",
     apiKeyLabel: "Mistral API key",
     apiKeyPlaceholderMissing: "Paste your API key",
     saveApiKey: "Save key",
@@ -133,9 +129,7 @@ const messages: Record<Locale, Record<MessageKey, string>> = {
     openSettingsAria: "Ouvrir les param\u00e8tres",
     closeSettingsAria: "Fermer les param\u00e8tres",
     promptLabel: "Prompt",
-    savePrompt: "Enregistrer le prompt",
-    cancelPromptEdit: "Annuler",
-    unsavedSettingsWarning: "Des modifications ne sont pas enregistr\u00e9es. Les abandonner ?",
+    promptSaveSaved: "Enregistr\u00e9",
     apiKeyLabel: "Cl\u00e9 API Mistral",
     apiKeyPlaceholderMissing: "Collez votre cl\u00e9 API",
     saveApiKey: "Enregistrer la cl\u00e9",
