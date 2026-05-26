@@ -327,8 +327,8 @@ pub async fn process_invoices(
 
     state.begin_batch();
 
-    let client = MistralClient::from_env()?;
-    let prompt = load_prompt()?;
+    let client = MistralClient::from_secure_store()?;
+    let prompt = load_prompt(&app)?;
     let total_count = paths.len();
     let mut results = Vec::with_capacity(total_count);
     let mut completed_count = 0;

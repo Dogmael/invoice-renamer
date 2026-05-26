@@ -11,7 +11,32 @@ type MessageKey =
   | "processOneFile"
   | "processManyFiles"
   | "processingProgress"
+  | "settingsTitle"
+  | "openSettingsAria"
+  | "closeSettingsAria"
+  | "promptLabel"
+  | "savePrompt"
+  | "promptHintSaved"
+  | "promptHintUnsaved"
+  | "cancelPromptEdit"
+  | "unsavedSettingsWarning"
+  | "apiKeyLabel"
+  | "apiKeyPlaceholderMissing"
+  | "apiKeyHintMissing"
+  | "apiKeyHintConfigured"
+  | "apiKeyHintInvalid"
+  | "apiKeyHintChecking"
+  | "saveApiKey"
+  | "saveApiKeyValidating"
+  | "replaceApiKey"
+  | "cancelApiKeyEdit"
+  | "clearApiKey"
+  | "unsavedApiKeyWarning"
+  | "discardChanges"
+  | "keepEditing"
+  | "settingsSaved"
   | "removeFileAria"
+  | "fileDoneLabel"
   | "cancelProcessing"
   | "cancelProcessingAria"
   | "status.pending"
@@ -20,6 +45,8 @@ type MessageKey =
   | "status.error"
   | "pdfFilter"
   | "error.mistralApiKeyMissing"
+  | "error.mistralApiKeyInvalid"
+  | "error.mistralApiKeyValidation"
   | "error.mistralChatNoFilename"
   | "error.invoiceInfoIncomplete"
   | "error.mistralApi"
@@ -29,7 +56,11 @@ type MessageKey =
   | "error.renameFailed"
   | "error.emptyFilename"
   | "error.fileNotFound"
-  | "error.invalidFileName";
+  | "error.invalidFileName"
+  | "error.secureStorageNotFound"
+  | "error.secureStorage"
+  | "error.promptSaveFailed"
+  | "error.configUnavailable";
 
 const messages: Record<Locale, Record<MessageKey, string>> = {
   en: {
@@ -41,7 +72,32 @@ const messages: Record<Locale, Record<MessageKey, string>> = {
     processOneFile: "Process 1 file",
     processManyFiles: "Process {count} files",
     processingProgress: "Processing {current} of {total} \u00b7 {percent}%",
+    settingsTitle: "Settings",
+    openSettingsAria: "Open settings",
+    closeSettingsAria: "Close settings",
+    promptLabel: "Prompt",
+    savePrompt: "Save prompt",
+    promptHintSaved: "Saved",
+    promptHintUnsaved: "Unsaved changes",
+    cancelPromptEdit: "Cancel",
+    unsavedSettingsWarning: "You have unsaved changes. Discard them?",
+    apiKeyLabel: "Mistral API key",
+    apiKeyPlaceholderMissing: "Paste your API key",
+    apiKeyHintMissing: "No key entered",
+    apiKeyHintConfigured: "Saved",
+    apiKeyHintInvalid: "Invalid key",
+    apiKeyHintChecking: "Checking…",
+    saveApiKey: "Save key",
+    saveApiKeyValidating: "Checking key…",
+    replaceApiKey: "Replace key",
+    cancelApiKeyEdit: "Cancel",
+    clearApiKey: "Delete key",
+    unsavedApiKeyWarning: "You have an unsaved API key. Discard your changes?",
+    discardChanges: "Discard",
+    keepEditing: "Keep editing",
+    settingsSaved: "Settings saved",
     removeFileAria: "Remove file",
+    fileDoneLabel: "Done",
     cancelProcessing: "Cancel",
     cancelProcessingAria: "Cancel processing",
     "status.pending": "Pending",
@@ -50,14 +106,18 @@ const messages: Record<Locale, Record<MessageKey, string>> = {
     "status.error": "Error",
     pdfFilter: "PDF",
     "error.mistralApiKeyMissing":
-      "MISTRAL_API_KEY is not set. Add it to a .env file.",
+      "Mistral API key is missing. Add it in Settings.",
+    "error.mistralApiKeyInvalid":
+      "This Mistral API key is invalid or unauthorized.",
+    "error.mistralApiKeyValidation":
+      "Could not verify the API key: {details}",
     "error.mistralChatNoFilename":
       "Mistral chat response did not contain a filename.",
     "error.invoiceInfoIncomplete":
       "Could not extract all required invoice information.",
     "error.mistralApi": "Mistral API error ({status}): {message}",
     "error.promptNotFound":
-      "prompt.txt not found. Place it at the project root.",
+      "Prompt is empty. Add one in Settings.",
     "error.pdfNoPages": "PDF has no pages.",
     "error.noParentFolder": "Could not determine parent folder.",
     "error.renameFailed":
@@ -65,6 +125,10 @@ const messages: Record<Locale, Record<MessageKey, string>> = {
     "error.emptyFilename": "Generated filename is empty.",
     "error.fileNotFound": "File not found: {path}",
     "error.invalidFileName": "Invalid file name for path: {path}",
+    "error.secureStorageNotFound": "No API key found in secure storage.",
+    "error.secureStorage": "Secure storage error: {details}",
+    "error.promptSaveFailed": "Could not save prompt: {details}",
+    "error.configUnavailable": "Could not access app configuration: {details}",
   },
   fr: {
     "app.title": "InvoiceRenamer",
@@ -75,7 +139,32 @@ const messages: Record<Locale, Record<MessageKey, string>> = {
     processOneFile: "Traiter 1 fichier",
     processManyFiles: "Traiter {count} fichiers",
     processingProgress: "Traitement {current} sur {total} \u00b7 {percent}%",
+    settingsTitle: "Param\u00e8tres",
+    openSettingsAria: "Ouvrir les param\u00e8tres",
+    closeSettingsAria: "Fermer les param\u00e8tres",
+    promptLabel: "Prompt",
+    savePrompt: "Enregistrer le prompt",
+    promptHintSaved: "Enregistr\u00e9",
+    promptHintUnsaved: "Modifications non enregistr\u00e9es",
+    cancelPromptEdit: "Annuler",
+    unsavedSettingsWarning: "Des modifications ne sont pas enregistr\u00e9es. Les abandonner ?",
+    apiKeyLabel: "Cl\u00e9 API Mistral",
+    apiKeyPlaceholderMissing: "Collez votre cl\u00e9 API",
+    apiKeyHintMissing: "Aucune cl\u00e9 renseign\u00e9e",
+    apiKeyHintConfigured: "Enregistr\u00e9e",
+    apiKeyHintInvalid: "Cl\u00e9 invalide",
+    apiKeyHintChecking: "V\u00e9rification…",
+    saveApiKey: "Enregistrer la cl\u00e9",
+    saveApiKeyValidating: "V\u00e9rification…",
+    replaceApiKey: "Remplacer la cl\u00e9",
+    cancelApiKeyEdit: "Annuler",
+    clearApiKey: "Supprimer la cl\u00e9",
+    unsavedApiKeyWarning: "La cl\u00e9 API n'est pas enregistr\u00e9e. Abandonner vos modifications ?",
+    discardChanges: "Abandonner",
+    keepEditing: "Continuer la saisie",
+    settingsSaved: "Param\u00e8tres enregistr\u00e9s",
     removeFileAria: "Retirer le fichier",
+    fileDoneLabel: "Termin\u00e9",
     cancelProcessing: "Annuler",
     cancelProcessingAria: "Annuler le traitement",
     "status.pending": "En attente",
@@ -84,14 +173,18 @@ const messages: Record<Locale, Record<MessageKey, string>> = {
     "status.error": "Erreur",
     pdfFilter: "PDF",
     "error.mistralApiKeyMissing":
-      "MISTRAL_API_KEY n'est pas d\u00e9finie. Ajoutez-la dans un fichier .env.",
+      "La cl\u00e9 API Mistral est manquante. Ajoutez-la dans les Param\u00e8tres.",
+    "error.mistralApiKeyInvalid":
+      "Cette cl\u00e9 API Mistral est invalide ou non autoris\u00e9e.",
+    "error.mistralApiKeyValidation":
+      "Impossible de v\u00e9rifier la cl\u00e9 API : {details}",
     "error.mistralChatNoFilename":
       "La r\u00e9ponse Mistral ne contient pas de nom de fichier.",
     "error.invoiceInfoIncomplete":
       "Impossible d'extraire toutes les informations requises de la facture.",
     "error.mistralApi": "Erreur API Mistral ({status}) : {message}",
     "error.promptNotFound":
-      "prompt.txt introuvable. Placez-le \u00e0 la racine du projet.",
+      "Le prompt est vide. Ajoutez-en un dans les Param\u00e8tres.",
     "error.pdfNoPages": "Le PDF ne contient aucune page.",
     "error.noParentFolder": "Impossible de d\u00e9terminer le dossier parent.",
     "error.renameFailed":
@@ -99,6 +192,10 @@ const messages: Record<Locale, Record<MessageKey, string>> = {
     "error.emptyFilename": "Le nom de fichier g\u00e9n\u00e9r\u00e9 est vide.",
     "error.fileNotFound": "Fichier introuvable : {path}",
     "error.invalidFileName": "Nom de fichier invalide pour le chemin : {path}",
+    "error.secureStorageNotFound": "Aucune cl\u00e9 API trouv\u00e9e dans le stockage s\u00e9curis\u00e9.",
+    "error.secureStorage": "Erreur de stockage s\u00e9curis\u00e9 : {details}",
+    "error.promptSaveFailed": "Impossible d'enregistrer le prompt : {details}",
+    "error.configUnavailable": "Impossible d'acc\u00e9der \u00e0 la configuration : {details}",
   },
 };
 
@@ -164,12 +261,14 @@ export function statusText(status: FileStatus): string {
 
 const backendErrorKeys: Record<string, MessageKey> = {
   "error.mistral_api_key_missing": "error.mistralApiKeyMissing",
+  "error.mistral_api_key_invalid": "error.mistralApiKeyInvalid",
   "error.mistral_chat_no_filename": "error.mistralChatNoFilename",
   "error.invoice_info_incomplete": "error.invoiceInfoIncomplete",
   "error.prompt_not_found": "error.promptNotFound",
   "error.pdf_no_pages": "error.pdfNoPages",
   "error.no_parent_folder": "error.noParentFolder",
   "error.empty_filename": "error.emptyFilename",
+  "error.secure_storage_not_found": "error.secureStorageNotFound",
 };
 
 export function translateBackendError(message: string): string {
@@ -212,9 +311,49 @@ export function translateBackendError(message: string): string {
     });
   }
 
+  if (message.startsWith("error.secure_storage|")) {
+    const details = message.slice("error.secure_storage|".length);
+    const normalizedDetails = details.startsWith("details=")
+      ? details.slice("details=".length)
+      : details;
+    return t("error.secureStorage", { details: normalizedDetails });
+  }
+
+  if (message.startsWith("error.prompt_save_failed|")) {
+    const details = message.slice("error.prompt_save_failed|".length);
+    const normalizedDetails = details.startsWith("details=")
+      ? details.slice("details=".length)
+      : details;
+    return t("error.promptSaveFailed", { details: normalizedDetails });
+  }
+
+  if (message.startsWith("error.mistral_api_key_validation|")) {
+    const details = message.slice("error.mistral_api_key_validation|".length);
+    const normalizedDetails = details.startsWith("details=")
+      ? details.slice("details=".length)
+      : details;
+    return t("error.mistralApiKeyValidation", { details: normalizedDetails });
+  }
+
+  if (message.startsWith("error.config_unavailable|")) {
+    const details = message.slice("error.config_unavailable|".length);
+    const normalizedDetails = details.startsWith("details=")
+      ? details.slice("details=".length)
+      : details;
+    return t("error.configUnavailable", { details: normalizedDetails });
+  }
+
   const mappedKey = backendErrorKeys[message];
   if (mappedKey) {
     return t(mappedKey);
+  }
+
+  const lowerMessage = message.toLowerCase();
+  if (
+    lowerMessage.includes("no matching entry found in secure storage")
+    || lowerMessage.includes("no matching entry")
+  ) {
+    return t("error.secureStorageNotFound");
   }
 
   return message;

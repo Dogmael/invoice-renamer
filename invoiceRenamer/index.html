@@ -10,10 +10,20 @@
 </head>
 
 <body>
+  <button class="settings-button" id="settingsButton" type="button" aria-label="Open settings">
+    <svg class="settings-button__icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" aria-hidden="true">
+      <path fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"
+        d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
+      <circle fill="none" stroke="currentColor" stroke-width="1.5" cx="12" cy="12" r="3" />
+    </svg>
+  </button>
+
   <div class="page-container">
     <div class="centered-box">
       <div class="text-zone">
-        <h1>InvoiceRenamer</h1>
+        <div class="app-header">
+          <h1>InvoiceRenamer</h1>
+        </div>
       </div>
 
       <div class="files-toolbar" id="filesToolbar">
@@ -60,6 +70,64 @@
           </div>
         </div>
       </div>
+    </div>
+  </div>
+
+  <div class="settings-modal hidden" id="settingsModal" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
+    <div class="settings-modal__backdrop" id="settingsBackdrop"></div>
+    <div class="settings-modal__panel">
+      <div class="settings-modal__header">
+        <h2 class="settings-modal__title" id="settingsTitle">Settings</h2>
+        <button class="settings-modal__close" id="closeSettingsButton" type="button" aria-label="Close settings">×</button>
+      </div>
+
+      <section class="settings-section" id="apiKeySection">
+        <div class="settings-section__label-row">
+          <label class="settings-section__label" for="apiKeyInput">
+            <svg class="settings-section__label-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" aria-hidden="true">
+              <path fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" d="M2.586 17.414A2 2 0 0 0 2 18.828V21a1 1 0 0 0 1 1h3a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h1a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h.172a2 2 0 0 0 1.414-.586l.814-.814a6.5 6.5 0 1 0-4-4z" />
+              <circle cx="16.5" cy="7.5" r="1.5" fill="currentColor"></circle>
+            </svg>
+            <span id="apiKeyLabelText">Mistral API key</span>
+          </label>
+          <span class="settings-section__status settings-section__status--ok hidden" id="apiKeyStatus"></span>
+        </div>
+
+        <div class="api-key-saved-view hidden" id="apiKeySavedView">
+          <div class="api-key-preview" id="apiKeyPreviewEl"></div>
+          <div class="settings-section__actions">
+            <button class="btn-outline settings-section__action" id="replaceApiKeyButton" type="button">Replace key</button>
+            <button class="settings-section__delete" id="clearApiKeyButton" type="button">Delete key</button>
+          </div>
+        </div>
+
+        <div class="api-key-edit-view hidden" id="apiKeyEditView">
+          <input class="settings-section__input" id="apiKeyInput" type="password" autocomplete="off" placeholder="Paste your API key" />
+          <div class="settings-section__actions">
+            <button class="btn-outline settings-section__action" id="saveApiKeyButton" type="button">Save key</button>
+            <button class="btn-outline settings-section__action hidden" id="cancelApiKeyButton" type="button">Cancel</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="settings-section settings-section--prompt">
+        <div class="settings-section__label-row">
+          <label class="settings-section__label" for="promptInput">
+            <svg class="settings-section__label-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" aria-hidden="true">
+              <path fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2" />
+              <path fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" d="M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v0a2 2 0 0 1-2 2h-2a2 2 0 0 1-2-2z" />
+              <path fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" d="M9 12h6M9 16h4" />
+            </svg>
+            <span id="promptLabelText">Prompt</span>
+          </label>
+          <span class="settings-section__status settings-section__status--ok" id="promptStatus"></span>
+        </div>
+        <textarea class="settings-section__textarea" id="promptInput" rows="14"></textarea>
+        <div class="settings-section__actions">
+          <button class="btn-outline settings-section__action" id="savePromptButton" type="button">Save prompt</button>
+          <button class="btn-outline settings-section__action hidden" id="cancelPromptButton" type="button">Cancel</button>
+        </div>
+      </section>
     </div>
   </div>
 </body>
