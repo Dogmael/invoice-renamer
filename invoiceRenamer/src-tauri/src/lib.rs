@@ -44,9 +44,10 @@ fn get_files_info(paths: Vec<String>) -> Result<Vec<FileInfo>, String> {
 async fn process_invoices(
     app: tauri::AppHandle,
     paths: Vec<String>,
+    locale: String,
     state: tauri::State<'_, processor::ProcessingState>,
 ) -> Result<Vec<processor::ProcessFileResult>, String> {
-    processor::process_invoices(app, paths, &state).await
+    processor::process_invoices(app, paths, locale, &state).await
 }
 
 #[tauri::command]
@@ -71,6 +72,11 @@ fn set_prompt(app: tauri::AppHandle, prompt: String) -> Result<(), String> {
 #[tauri::command]
 fn get_mistral_api_key_info() -> Result<mistral::MistralApiKeyInfo, String> {
     mistral::get_api_key_info()
+}
+
+#[tauri::command]
+async fn get_mistral_api_key_state(validate: bool) -> Result<mistral::MistralApiKeyState, String> {
+    mistral::get_api_key_state(validate).await
 }
 
 #[tauri::command]
@@ -117,6 +123,7 @@ pub fn run() {
             get_prompt,
             set_prompt,
             get_mistral_api_key_info,
+            get_mistral_api_key_state,
             get_mistral_api_key_preview,
             validate_mistral_api_key,
             validate_stored_mistral_api_key,

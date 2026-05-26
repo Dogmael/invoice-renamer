@@ -4,6 +4,7 @@ import { getCurrentWindow } from "@tauri-apps/api/window";
 import { confirm, open } from "@tauri-apps/plugin-dialog";
 import {
   applyDocumentLocale,
+  getLocale,
   initLocale,
   t,
   translateBackendError,
@@ -44,6 +45,10 @@ interface MistralApiKeyInfo {
   preview: string | null;
 }
 
+interface MistralApiKeyState extends MistralApiKeyInfo {
+  validation?: "valid" | "invalid" | null;
+}
+
 type ApiKeyValidationState = "unknown" | "checking" | "valid" | "invalid";
 
 const dropZone = document.querySelector<HTMLElement>("#dropZone")!;
@@ -66,9 +71,7 @@ const closeSettingsButton = document.querySelector<HTMLButtonElement>("#closeSet
 const promptInput = document.querySelector<HTMLTextAreaElement>("#promptInput")!;
 const savePromptButton = document.querySelector<HTMLButtonElement>("#savePromptButton")!;
 const cancelPromptButton = document.querySelector<HTMLButtonElement>("#cancelPromptButton")!;
-const promptStatus = document.querySelector<HTMLElement>("#promptStatus")!;
 const apiKeyInput = document.querySelector<HTMLInputElement>("#apiKeyInput")!;
-const apiKeyStatus = document.querySelector<HTMLElement>("#apiKeyStatus")!;
 const apiKeySavedView = document.querySelector<HTMLElement>("#apiKeySavedView")!;
 const apiKeyEditView = document.querySelector<HTMLElement>("#apiKeyEditView")!;
 const apiKeyPreviewEl = document.querySelector<HTMLElement>("#apiKeyPreviewEl")!;
@@ -87,9 +90,7 @@ let savedKeyPreview: string | null = null;
 let isReplacingApiKey = false;
 let isSavingApiKey = false;
 let apiKeyValidationState: ApiKeyValidationState = "unknown";
-let apiKeyDraftError: string | null = null;
 let savedPrompt = "";
-let promptDraftError: string | null = null;
 
 function getGlobalProgressPercent(): number {
   if (!isProcessing || batchTotal === 0) {
@@ -160,23 +161,22 @@ function isApiKeyEditViewVisible(): boolean {
   return !apiKeyHasStoredKey || isReplacingApiKey;
 }
 
-function shouldHideApiKeyStatus(): boolean {
-  if (apiKeyDraftError) {
-    return false;
-  }
-
-  return isReplacingApiKey || apiKeyHasUnsavedDraft() || isSavingApiKey;
-}
-
-function setApiKeyDraftError(message: string | null): void {
-  apiKeyDraftError = message;
-}
-
 function normalizeApiKeyInfo(raw: unknown): MistralApiKeyInfo {
   const info = raw as Record<string, unknown>;
   return {
     hasKey: Boolean(info.hasKey ?? info.has_key),
     preview: typeof info.preview === "string" ? info.preview : null,
+  };
+}
+
+function normalizeApiKeyState(raw: unknown): MistralApiKeyState {
+  const info = raw as Record<string, unknown>;
+  const validation = info.validation;
+
+  return {
+    ...normalizeApiKeyInfo(raw),
+    validation:
+      validation === "valid" || validation === "invalid" ? validation : null,
   };
 }
 
@@ -187,44 +187,12 @@ function applyApiKeyInfo(info: MistralApiKeyInfo): void {
 
 function updateApiKeyUi(): void {
   const editViewVisible = isApiKeyEditViewVisible();
-  const hideStatus = shouldHideApiKeyStatus();
 
   apiKeySavedView.classList.toggle("hidden", editViewVisible);
   apiKeyEditView.classList.toggle("hidden", !editViewVisible);
 
   if (apiKeyHasStoredKey && !editViewVisible) {
     apiKeyPreviewEl.textContent = savedKeyPreview ?? "**...****";
-  }
-
-  if (hideStatus) {
-    apiKeyStatus.classList.add("hidden");
-  } else if (apiKeyDraftError && editViewVisible) {
-    apiKeyStatus.classList.remove("hidden");
-    apiKeyStatus.textContent = apiKeyDraftError;
-    apiKeyStatus.classList.remove("settings-section__status--ok", "settings-section__status--missing");
-    apiKeyStatus.classList.add("settings-section__status--invalid");
-  } else if (apiKeyHasStoredKey && !editViewVisible) {
-    apiKeyStatus.classList.remove("hidden");
-    apiKeyStatus.classList.remove("settings-section__status--missing", "settings-section__status--invalid");
-
-    if (apiKeyValidationState === "checking") {
-      apiKeyStatus.textContent = t("apiKeyHintChecking");
-      apiKeyStatus.classList.remove("settings-section__status--ok");
-    } else if (apiKeyValidationState === "invalid") {
-      apiKeyStatus.textContent = t("apiKeyHintInvalid");
-      apiKeyStatus.classList.add("settings-section__status--invalid");
-      apiKeyStatus.classList.remove("settings-section__status--ok");
-    } else {
-      apiKeyStatus.textContent = t("apiKeyHintConfigured");
-      apiKeyStatus.classList.add("settings-section__status--ok");
-    }
-  } else if (!apiKeyHasStoredKey) {
-    apiKeyStatus.classList.remove("hidden");
-    apiKeyStatus.textContent = t("apiKeyHintMissing");
-    apiKeyStatus.classList.remove("settings-section__status--ok", "settings-section__status--invalid");
-    apiKeyStatus.classList.add("settings-section__status--missing");
-  } else {
-    apiKeyStatus.classList.add("hidden");
   }
 
   const showCancel = editViewVisible && (isReplacingApiKey || apiKeyHasUnsavedDraft());
@@ -234,25 +202,46 @@ function updateApiKeyUi(): void {
 }
 
 async function refreshApiKeyState(validateStored = false): Promise<void> {
-  const info = normalizeApiKeyInfo(await invoke("get_mistral_api_key_info"));
-  applyApiKeyInfo(info);
-  isReplacingApiKey = false;
-  apiKeyInput.value = "";
-  setApiKeyDraftError(null);
-  apiKeyValidationState = info.hasKey ? "unknown" : "unknown";
-  updateApiKeyUi();
+  const shouldValidate =
+    validateStored &&
+    apiKeyValidationState !== "valid" &&
+    apiKeyValidationState !== "checking";
 
-  if (validateStored && info.hasKey) {
-    await validateStoredApiKey();
+  if (shouldValidate) {
+    apiKeyValidationState = "checking";
+    updateApiKeyUi();
+  }
+
+  try {
+    const state = normalizeApiKeyState(
+      await invoke<MistralApiKeyState>("get_mistral_api_key_state", {
+        validate: shouldValidate,
+      }),
+    );
+    applyApiKeyInfo(state);
+    isReplacingApiKey = false;
+    apiKeyInput.value = "";
+
+    if (state.validation === "valid") {
+      apiKeyValidationState = "valid";
+    } else if (state.validation === "invalid") {
+      apiKeyValidationState = "invalid";
+    } else if (!state.hasKey) {
+      apiKeyValidationState = "unknown";
+    } else if (!shouldValidate && apiKeyValidationState === "checking") {
+      apiKeyValidationState = "unknown";
+    }
+
+    updateApiKeyUi();
+  } catch (error) {
+    apiKeyValidationState = "unknown";
+    updateApiKeyUi();
+    console.error(translateBackendError(error instanceof Error ? error.message : String(error)));
   }
 }
 
 function promptHasUnsavedChanges(): boolean {
   return promptInput.value !== savedPrompt;
-}
-
-function setPromptDraftError(message: string | null): void {
-  promptDraftError = message;
 }
 
 function updatePromptUi(): void {
@@ -261,42 +250,13 @@ function updatePromptUi(): void {
   promptInput.classList.toggle("settings-section__textarea--dirty", isDirty);
   cancelPromptButton.classList.toggle("hidden", !isDirty);
   savePromptButton.disabled = !isDirty || promptInput.value.trim().length === 0;
-
-  promptStatus.classList.remove("hidden", "settings-section__status--ok", "settings-section__status--unsaved", "settings-section__status--invalid");
-
-  if (promptDraftError) {
-    promptStatus.textContent = promptDraftError;
-    promptStatus.classList.add("settings-section__status--invalid");
-  } else if (isDirty) {
-    promptStatus.textContent = t("promptHintUnsaved");
-    promptStatus.classList.add("settings-section__status--unsaved");
-  } else {
-    promptStatus.textContent = t("promptHintSaved");
-    promptStatus.classList.add("settings-section__status--ok");
-  }
 }
 
 async function refreshPromptState(): Promise<void> {
   const prompt = await invoke<string>("get_prompt");
   savedPrompt = prompt;
   promptInput.value = prompt;
-  setPromptDraftError(null);
   updatePromptUi();
-}
-
-async function validateStoredApiKey(): Promise<void> {
-  apiKeyValidationState = "checking";
-  updateApiKeyUi();
-
-  try {
-    await invoke("validate_stored_mistral_api_key");
-    apiKeyValidationState = "valid";
-  } catch (error) {
-    apiKeyValidationState = "invalid";
-    console.error(translateBackendError(error instanceof Error ? error.message : String(error)));
-  }
-
-  updateApiKeyUi();
 }
 
 async function refreshSettingsState(): Promise<void> {
@@ -332,7 +292,6 @@ async function requestCloseSettings(): Promise<void> {
   isReplacingApiKey = false;
   apiKeyInput.value = "";
   promptInput.value = savedPrompt;
-  setPromptDraftError(null);
   updatePromptUi();
   settingsModal.classList.add("hidden");
 }
@@ -340,7 +299,6 @@ async function requestCloseSettings(): Promise<void> {
 function startReplaceApiKey(): void {
   isReplacingApiKey = true;
   apiKeyInput.value = "";
-  setApiKeyDraftError(null);
   updateApiKeyUi();
   apiKeyInput.focus();
 }
@@ -348,7 +306,6 @@ function startReplaceApiKey(): void {
 function cancelApiKeyEdit(): void {
   isReplacingApiKey = false;
   apiKeyInput.value = "";
-  setApiKeyDraftError(null);
   updateApiKeyUi();
 }
 
@@ -361,18 +318,14 @@ async function savePrompt(): Promise<void> {
   try {
     await invoke("set_prompt", { prompt });
     savedPrompt = prompt;
-    setPromptDraftError(null);
     updatePromptUi();
   } catch (error) {
-    const message = translateBackendError(error instanceof Error ? error.message : String(error));
-    setPromptDraftError(message);
-    updatePromptUi();
+    console.error(translateBackendError(error instanceof Error ? error.message : String(error)));
   }
 }
 
 function cancelPromptEdit(): void {
   promptInput.value = savedPrompt;
-  setPromptDraftError(null);
   updatePromptUi();
 }
 
@@ -383,7 +336,6 @@ async function saveApiKey(): Promise<void> {
   }
 
   isSavingApiKey = true;
-  setApiKeyDraftError(null);
   updateApiKeyUi();
 
   try {
@@ -394,13 +346,10 @@ async function saveApiKey(): Promise<void> {
     apiKeyInput.value = "";
     isSavingApiKey = false;
     apiKeyValidationState = "valid";
-    setApiKeyDraftError(null);
     updateApiKeyUi();
-    void validateStoredApiKey();
   } catch (error) {
     isSavingApiKey = false;
-    const message = translateBackendError(error instanceof Error ? error.message : String(error));
-    setApiKeyDraftError(message);
+    console.error(translateBackendError(error instanceof Error ? error.message : String(error)));
     updateApiKeyUi();
   }
 }
@@ -413,7 +362,6 @@ async function clearApiKey(): Promise<void> {
     isReplacingApiKey = false;
     apiKeyValidationState = "unknown";
     apiKeyInput.value = "";
-    setApiKeyDraftError(null);
     updateApiKeyUi();
   } catch (error) {
     console.error(translateBackendError(error instanceof Error ? error.message : String(error)));
@@ -459,20 +407,40 @@ function applyProgressUpdate(event: ProcessProgressEvent) {
 }
 
 function fileProgressBarHtml(file: FileEntry): string {
-  if (file.status === "pending" || file.status === "done") {
+  if (file.status !== "processing") {
     return "";
   }
 
-  const modifier =
-    file.status === "error"
-      ? "progress-bar--error"
-      : "progress-bar--active";
-
   return `
-    <div class="progress-bar progress-bar--file ${modifier}">
+    <div class="progress-bar progress-bar--file progress-bar--active">
       <div class="progress-bar__fill" style="width: ${file.progress}%"></div>
     </div>
   `;
+}
+
+function fileFailedLabel(failedIndex: number): string {
+  const base = t("fileFailedLabel");
+  if (failedIndex === 0) {
+    return base;
+  }
+
+  return `${base} (${failedIndex})`;
+}
+
+function fileStatusBadgeHtml(file: FileEntry, failedIndex: number | undefined): string {
+  if (file.status === "done") {
+    return `<span class="file-item__status file-item__status--done">${t("fileDoneLabel")}</span>`;
+  }
+
+  if (file.status === "error" && failedIndex !== undefined) {
+    return `<span class="file-item__status file-item__status--failed">${fileFailedLabel(failedIndex)}</span>`;
+  }
+
+  if (file.status === "pending") {
+    return `<span class="file-item__status file-item__status--pending">${t("filePendingLabel")}</span>`;
+  }
+
+  return "";
 }
 
 function fileNameHtml(file: FileEntry): string {
@@ -498,6 +466,15 @@ function renderFileList() {
 
   fileListEl.innerHTML = "";
 
+  const failedIndexByFileId = new Map<string, number>();
+  let failedCount = 0;
+  files.forEach((file) => {
+    if (file.status === "error") {
+      failedIndexByFileId.set(file.id, failedCount);
+      failedCount += 1;
+    }
+  });
+
   files.forEach((file) => {
     const item = document.createElement("li");
     item.className = "file-item";
@@ -508,7 +485,7 @@ function renderFileList() {
       <div class="file-item__info">
         <p class="file-item__name" title="${file.path}">
           <span class="file-item__name-text">${fileNameHtml(file)}</span>
-          ${file.status === "done" ? `<span class="file-item__done">${t("fileDoneLabel")}</span>` : ""}
+          ${fileStatusBadgeHtml(file, failedIndexByFileId.get(file.id))}
         </p>
         ${fileProgressBarHtml(file)}
       </div>
@@ -674,6 +651,7 @@ async function processFiles() {
   try {
     await invoke("process_invoices", {
       paths: pendingFiles.map((file) => file.path),
+      locale: getLocale(),
     });
   } catch (error) {
     const message = translateBackendError(
@@ -777,9 +755,6 @@ window.addEventListener("DOMContentLoaded", async () => {
   });
 
   promptInput.addEventListener("input", () => {
-    if (promptDraftError) {
-      setPromptDraftError(null);
-    }
     updatePromptUi();
   });
 
@@ -796,9 +771,6 @@ window.addEventListener("DOMContentLoaded", async () => {
   });
 
   apiKeyInput.addEventListener("input", () => {
-    if (apiKeyDraftError) {
-      setApiKeyDraftError(null);
-    }
     updateApiKeyUi();
   });
 

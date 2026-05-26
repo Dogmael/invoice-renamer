@@ -16,16 +16,10 @@ type MessageKey =
   | "closeSettingsAria"
   | "promptLabel"
   | "savePrompt"
-  | "promptHintSaved"
-  | "promptHintUnsaved"
   | "cancelPromptEdit"
   | "unsavedSettingsWarning"
   | "apiKeyLabel"
   | "apiKeyPlaceholderMissing"
-  | "apiKeyHintMissing"
-  | "apiKeyHintConfigured"
-  | "apiKeyHintInvalid"
-  | "apiKeyHintChecking"
   | "saveApiKey"
   | "saveApiKeyValidating"
   | "replaceApiKey"
@@ -34,9 +28,10 @@ type MessageKey =
   | "unsavedApiKeyWarning"
   | "discardChanges"
   | "keepEditing"
-  | "settingsSaved"
   | "removeFileAria"
   | "fileDoneLabel"
+  | "filePendingLabel"
+  | "fileFailedLabel"
   | "cancelProcessing"
   | "cancelProcessingAria"
   | "status.pending"
@@ -77,16 +72,10 @@ const messages: Record<Locale, Record<MessageKey, string>> = {
     closeSettingsAria: "Close settings",
     promptLabel: "Prompt",
     savePrompt: "Save prompt",
-    promptHintSaved: "Saved",
-    promptHintUnsaved: "Unsaved changes",
     cancelPromptEdit: "Cancel",
     unsavedSettingsWarning: "You have unsaved changes. Discard them?",
     apiKeyLabel: "Mistral API key",
     apiKeyPlaceholderMissing: "Paste your API key",
-    apiKeyHintMissing: "No key entered",
-    apiKeyHintConfigured: "Saved",
-    apiKeyHintInvalid: "Invalid key",
-    apiKeyHintChecking: "Checking…",
     saveApiKey: "Save key",
     saveApiKeyValidating: "Checking key…",
     replaceApiKey: "Replace key",
@@ -95,9 +84,10 @@ const messages: Record<Locale, Record<MessageKey, string>> = {
     unsavedApiKeyWarning: "You have an unsaved API key. Discard your changes?",
     discardChanges: "Discard",
     keepEditing: "Keep editing",
-    settingsSaved: "Settings saved",
     removeFileAria: "Remove file",
     fileDoneLabel: "Done",
+    filePendingLabel: "Pending",
+    fileFailedLabel: "Failed",
     cancelProcessing: "Cancel",
     cancelProcessingAria: "Cancel processing",
     "status.pending": "Pending",
@@ -144,16 +134,10 @@ const messages: Record<Locale, Record<MessageKey, string>> = {
     closeSettingsAria: "Fermer les param\u00e8tres",
     promptLabel: "Prompt",
     savePrompt: "Enregistrer le prompt",
-    promptHintSaved: "Enregistr\u00e9",
-    promptHintUnsaved: "Modifications non enregistr\u00e9es",
     cancelPromptEdit: "Annuler",
     unsavedSettingsWarning: "Des modifications ne sont pas enregistr\u00e9es. Les abandonner ?",
     apiKeyLabel: "Cl\u00e9 API Mistral",
     apiKeyPlaceholderMissing: "Collez votre cl\u00e9 API",
-    apiKeyHintMissing: "Aucune cl\u00e9 renseign\u00e9e",
-    apiKeyHintConfigured: "Enregistr\u00e9e",
-    apiKeyHintInvalid: "Cl\u00e9 invalide",
-    apiKeyHintChecking: "V\u00e9rification…",
     saveApiKey: "Enregistrer la cl\u00e9",
     saveApiKeyValidating: "V\u00e9rification…",
     replaceApiKey: "Remplacer la cl\u00e9",
@@ -162,9 +146,10 @@ const messages: Record<Locale, Record<MessageKey, string>> = {
     unsavedApiKeyWarning: "La cl\u00e9 API n'est pas enregistr\u00e9e. Abandonner vos modifications ?",
     discardChanges: "Abandonner",
     keepEditing: "Continuer la saisie",
-    settingsSaved: "Param\u00e8tres enregistr\u00e9s",
     removeFileAria: "Retirer le fichier",
     fileDoneLabel: "Termin\u00e9",
+    filePendingLabel: "En attente",
+    fileFailedLabel: "\u00c9chou\u00e9",
     cancelProcessing: "Annuler",
     cancelProcessingAria: "Annuler le traitement",
     "status.pending": "En attente",

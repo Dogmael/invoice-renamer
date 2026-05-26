@@ -467,11 +467,24 @@ body {
   text-overflow: ellipsis;
 }
 
-.file-item__done {
+.file-item__status {
   flex-shrink: 0;
   font-size: 0.75rem;
   font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.file-item__status--done {
   color: #2e8b57;
+}
+
+.file-item__status--failed {
+  color: #e67e22;
+}
+
+.file-item__status--pending {
+  color: var(--text-muted);
+  font-weight: 600;
 }
 
 .file-item__rename {
@@ -634,28 +647,6 @@ body {
 
 .settings-section__label-icon [stroke] {
   stroke-width: 2;
-}
-
-.settings-section__status {
-  flex-shrink: 0;
-  font-size: 0.78rem;
-  font-weight: 500;
-}
-
-.settings-section__status--missing {
-  color: var(--text-muted);
-}
-
-.settings-section__status--ok {
-  color: #2e8b57;
-}
-
-.settings-section__status--unsaved {
-  color: #b45309;
-}
-
-.settings-section__status--invalid {
-  color: #c0392b;
 }
 
 .settings-section__actions {

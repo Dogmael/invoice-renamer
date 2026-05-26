@@ -9,9 +9,11 @@ Audir sécu code
 
 Police de caractère un peu arrondi. 
 Gérer dark mode.
-Priompt rich format md
 
+Remplacer le full prompt par des instruction personnalisées.
 
 Ajouter log/historique des traitements
 
-Renommer facture en null si erreur. Afficher la progress bar comme complette et un statut "Erreur"
+Mettre prompt perso pour les choses du genre : "remboursé par virement à Tiphaine le 22/04/2026".
+
+Afficher les nom complet au survol. Un hint sur le logo setting ?
