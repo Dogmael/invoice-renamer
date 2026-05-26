@@ -1,15 +1,30 @@
 use reqwest::Client;
+use serde::Serialize;
 use serde_json::{json, Value};
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use std::time::Duration;
+use tauri::{AppHandle, Manager};
 
 use crate::pdf_utils;
 
 const MISTRAL_API_BASE: &str = "https://api.mistral.ai/v1";
 const OCR_MODEL: &str = "mistral-ocr-latest";
 const CHAT_MODEL: &str = "mistral-small-2506";
+const KEYRING_SERVICE: &str = "invoicerenamer";
+const KEYRING_ACCOUNT: &str = "mistral_api_key";
+const DEFAULT_PROMPT: &str = "Tu renommes des factures PDF.\n\
+Retourne uniquement un nom de fichier concis, sans extension.\n\
+Format attendu: fournisseur_numero_facture_date_montant_ttc.\n\
+Utilise des underscores, sans accents, sans caractères spéciaux.";
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct MistralApiKeyInfo {
+    pub has_key: bool,
+    pub preview: Option<String>,
+}
 
 pub struct MistralClient {
     http: Client,
@@ -17,12 +32,8 @@ pub struct MistralClient {
 }
 
 impl MistralClient {
-    pub fn from_env() -> Result<Self, String> {
-        dotenvy::dotenv().ok();
-        dotenvy::from_filename("../.env").ok();
-
-        let api_key = std::env::var("MISTRAL_API_KEY")
-            .map_err(|_| "error.mistral_api_key_missing".to_string())?;
+    pub fn from_secure_store() -> Result<Self, String> {
+        let api_key = read_api_key()?;
 
         Ok(Self {
             http: Client::new(),
@@ -129,18 +140,193 @@ impl MistralClient {
     }
 }
 
-pub fn load_prompt() -> Result<String, String> {
+async fn wait_for_cancel(cancel: &Arc<AtomicBool>) {
+    while !cancel.load(Ordering::SeqCst) {
+        tokio::time::sleep(Duration::from_millis(50)).await;
+    }
+}
+
+pub fn load_prompt(app: &AppHandle) -> Result<String, String> {
+    let prompt_path = app_prompt_path(app)?;
+
+    if prompt_path.exists() {
+        return std::fs::read_to_string(&prompt_path)
+            .map_err(|e| crate::i18n::prompt_save_failed(&e.to_string()));
+    }
+
     for path in ["prompt.txt", "../prompt.txt", "../../prompt.txt"] {
         if let Ok(content) = std::fs::read_to_string(path) {
+            std::fs::write(&prompt_path, &content)
+                .map_err(|e| crate::i18n::prompt_save_failed(&e.to_string()))?;
             return Ok(content);
         }
     }
 
-    Err("error.prompt_not_found".to_string())
+    std::fs::write(&prompt_path, DEFAULT_PROMPT)
+        .map_err(|e| crate::i18n::prompt_save_failed(&e.to_string()))?;
+    Ok(DEFAULT_PROMPT.to_string())
 }
 
-async fn wait_for_cancel(cancel: &Arc<AtomicBool>) {
-    while !cancel.load(Ordering::SeqCst) {
-        tokio::time::sleep(Duration::from_millis(50)).await;
+pub fn save_prompt(app: &AppHandle, prompt: &str) -> Result<(), String> {
+    if prompt.trim().is_empty() {
+        return Err("error.prompt_not_found".to_string());
+    }
+
+    let prompt_path = app_prompt_path(app)?;
+    std::fs::write(prompt_path, prompt)
+        .map_err(|e| crate::i18n::prompt_save_failed(&e.to_string()))
+}
+
+pub fn get_api_key_info() -> Result<MistralApiKeyInfo, String> {
+    match read_api_key() {
+        Ok(key) => Ok(MistralApiKeyInfo {
+            has_key: true,
+            preview: Some(mask_api_key(&key)),
+        }),
+        Err(error) if error == "error.mistral_api_key_missing" => Ok(MistralApiKeyInfo {
+            has_key: false,
+            preview: None,
+        }),
+        Err(error) => Err(error),
+    }
+}
+
+pub fn get_api_key_preview() -> Result<Option<String>, String> {
+    Ok(get_api_key_info()?.preview)
+}
+
+pub async fn validate_api_key(api_key: &str) -> Result<(), String> {
+    let api_key = api_key.trim();
+    if api_key.is_empty() {
+        return Err("error.mistral_api_key_missing".to_string());
+    }
+
+    let client = Client::new();
+    let response = client
+        .get(format!("{MISTRAL_API_BASE}/models"))
+        .bearer_auth(api_key)
+        .send()
+        .await
+        .map_err(|e| format!("error.mistral_api_key_validation|details={}", e))?;
+
+    let status = response.status();
+    if status.as_u16() == 401 || status.as_u16() == 403 {
+        return Err("error.mistral_api_key_invalid".to_string());
+    }
+
+    if !status.is_success() {
+        let message = response
+            .text()
+            .await
+            .unwrap_or_else(|_| "Unknown Mistral API error".to_string());
+        return Err(crate::i18n::mistral_api_error(status.as_u16(), &message));
+    }
+
+    Ok(())
+}
+
+pub async fn validate_stored_api_key() -> Result<(), String> {
+    validate_api_key(&read_api_key()?).await
+}
+
+pub fn has_api_key() -> bool {
+    read_api_key().is_ok()
+}
+
+pub fn set_api_key(api_key: &str) -> Result<MistralApiKeyInfo, String> {
+    let api_key = api_key.trim();
+    if api_key.is_empty() {
+        return Err("error.mistral_api_key_missing".to_string());
+    }
+
+    let entry = keyring_entry()?;
+    entry
+        .set_password(api_key)
+        .map_err(map_keyring_error)?;
+
+    Ok(api_key_info_from_key(api_key))
+}
+
+pub fn clear_api_key() -> Result<(), String> {
+    let entry = keyring_entry()?;
+    match entry.delete_credential() {
+        Ok(()) => Ok(()),
+        Err(e) => {
+            if is_missing_keyring_entry(&e) {
+                Ok(())
+            } else {
+                Err(map_keyring_error(e))
+            }
+        }
+    }
+}
+
+fn read_api_key() -> Result<String, String> {
+    let entry = keyring_entry()?;
+    match entry.get_password() {
+        Ok(api_key) => {
+            if api_key.trim().is_empty() {
+                Err("error.mistral_api_key_missing".to_string())
+            } else {
+                Ok(api_key)
+            }
+        }
+        Err(error) => {
+            if is_missing_keyring_entry(&error) {
+                Err("error.mistral_api_key_missing".to_string())
+            } else {
+                Err(map_keyring_error(error))
+            }
+        }
+    }
+}
+
+fn app_prompt_path(app: &AppHandle) -> Result<PathBuf, String> {
+    let config_dir = app
+        .path()
+        .app_config_dir()
+        .map_err(|e| crate::i18n::config_unavailable(&e.to_string()))?;
+    std::fs::create_dir_all(&config_dir)
+        .map_err(|e| crate::i18n::config_unavailable(&e.to_string()))?;
+    Ok(config_dir.join("prompt.txt"))
+}
+
+fn keyring_entry() -> Result<keyring::Entry, String> {
+    keyring::Entry::new(KEYRING_SERVICE, KEYRING_ACCOUNT).map_err(map_keyring_error)
+}
+
+fn is_missing_keyring_entry(error: &keyring::Error) -> bool {
+    let message = error.to_string().to_lowercase();
+    message.contains("no matching entry")
+        || message.contains("no entry")
+        || message.contains("could not find")
+        || message.contains("not found")
+}
+
+fn map_keyring_error(error: keyring::Error) -> String {
+    if is_missing_keyring_entry(&error) {
+        return "error.secure_storage_not_found".to_string();
+    }
+
+    crate::i18n::secure_storage_error(&error.to_string())
+}
+
+fn mask_api_key(key: &str) -> String {
+    let key = key.trim();
+    let chars: Vec<char> = key.chars().collect();
+    let len = chars.len();
+
+    if len <= 4 {
+        return format!("**...{key}");
+    }
+
+    let suffix: String = chars.iter().skip(len - 4).collect();
+    format!("**...{suffix}")
+}
+
+pub fn api_key_info_from_key(api_key: &str) -> MistralApiKeyInfo {
+    MistralApiKeyInfo {
+        has_key: true,
+        preview: Some(mask_api_key(api_key)),
     }
 }

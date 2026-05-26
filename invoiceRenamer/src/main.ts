@@ -1,11 +1,10 @@
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { getCurrentWindow } from "@tauri-apps/api/window";
-import { open } from "@tauri-apps/plugin-dialog";
+import { confirm, open } from "@tauri-apps/plugin-dialog";
 import {
   applyDocumentLocale,
   initLocale,
-  statusText,
   t,
   translateBackendError,
 } from "./i18n";
@@ -40,6 +39,13 @@ interface ProcessProgressEvent {
   totalCount?: number;
 }
 
+interface MistralApiKeyInfo {
+  hasKey: boolean;
+  preview: string | null;
+}
+
+type ApiKeyValidationState = "unknown" | "checking" | "valid" | "invalid";
+
 const dropZone = document.querySelector<HTMLElement>("#dropZone")!;
 const dropZoneContent = document.querySelector<HTMLElement>("#dropZoneContent")!;
 const filesView = document.querySelector<HTMLElement>("#filesView")!;
@@ -53,35 +59,37 @@ const processButton = document.querySelector<HTMLButtonElement>("#processButton"
 const processButtonFill = document.querySelector<HTMLElement>("#processButtonFill")!;
 const processButtonLabel = document.querySelector<HTMLElement>("#processButtonLabel")!;
 const cancelProcessButton = document.querySelector<HTMLButtonElement>("#cancelProcessButton")!;
+const settingsButton = document.querySelector<HTMLButtonElement>("#settingsButton")!;
+const settingsModal = document.querySelector<HTMLElement>("#settingsModal")!;
+const settingsBackdrop = document.querySelector<HTMLElement>("#settingsBackdrop")!;
+const closeSettingsButton = document.querySelector<HTMLButtonElement>("#closeSettingsButton")!;
+const promptInput = document.querySelector<HTMLTextAreaElement>("#promptInput")!;
+const savePromptButton = document.querySelector<HTMLButtonElement>("#savePromptButton")!;
+const cancelPromptButton = document.querySelector<HTMLButtonElement>("#cancelPromptButton")!;
+const promptStatus = document.querySelector<HTMLElement>("#promptStatus")!;
+const apiKeyInput = document.querySelector<HTMLInputElement>("#apiKeyInput")!;
+const apiKeyStatus = document.querySelector<HTMLElement>("#apiKeyStatus")!;
+const apiKeySavedView = document.querySelector<HTMLElement>("#apiKeySavedView")!;
+const apiKeyEditView = document.querySelector<HTMLElement>("#apiKeyEditView")!;
+const apiKeyPreviewEl = document.querySelector<HTMLElement>("#apiKeyPreviewEl")!;
+const saveApiKeyButton = document.querySelector<HTMLButtonElement>("#saveApiKeyButton")!;
+const replaceApiKeyButton = document.querySelector<HTMLButtonElement>("#replaceApiKeyButton")!;
+const cancelApiKeyButton = document.querySelector<HTMLButtonElement>("#cancelApiKeyButton")!;
+const clearApiKeyButton = document.querySelector<HTMLButtonElement>("#clearApiKeyButton")!;
 
 let files: FileEntry[] = [];
 let draggedFileId: string | null = null;
 let isProcessing = false;
 let batchTotal = 0;
 let batchCompleted = 0;
-
-function formatFileSize(bytes: number): string {
-  if (bytes === 0) {
-    return "0 B";
-  }
-
-  const units = ["B", "KB", "MB", "GB", "TB"];
-  const unitIndex = Math.min(
-    Math.floor(Math.log(bytes) / Math.log(1024)),
-    units.length - 1,
-  );
-  const value = bytes / 1024 ** unitIndex;
-
-  return `${value.toFixed(unitIndex === 0 ? 0 : 1)} ${units[unitIndex]}`;
-}
-
-function statusLabel(file: FileEntry): string {
-  if (file.status === "error" && file.error) {
-    return file.error;
-  }
-
-  return statusText(file.status);
-}
+let apiKeyHasStoredKey = false;
+let savedKeyPreview: string | null = null;
+let isReplacingApiKey = false;
+let isSavingApiKey = false;
+let apiKeyValidationState: ApiKeyValidationState = "unknown";
+let apiKeyDraftError: string | null = null;
+let savedPrompt = "";
+let promptDraftError: string | null = null;
 
 function getGlobalProgressPercent(): number {
   if (!isProcessing || batchTotal === 0) {
@@ -144,6 +152,274 @@ function updateProcessButton() {
   selectButton.disabled = isProcessing;
 }
 
+function apiKeyHasUnsavedDraft(): boolean {
+  return apiKeyInput.value.trim().length > 0;
+}
+
+function isApiKeyEditViewVisible(): boolean {
+  return !apiKeyHasStoredKey || isReplacingApiKey;
+}
+
+function shouldHideApiKeyStatus(): boolean {
+  if (apiKeyDraftError) {
+    return false;
+  }
+
+  return isReplacingApiKey || apiKeyHasUnsavedDraft() || isSavingApiKey;
+}
+
+function setApiKeyDraftError(message: string | null): void {
+  apiKeyDraftError = message;
+}
+
+function normalizeApiKeyInfo(raw: unknown): MistralApiKeyInfo {
+  const info = raw as Record<string, unknown>;
+  return {
+    hasKey: Boolean(info.hasKey ?? info.has_key),
+    preview: typeof info.preview === "string" ? info.preview : null,
+  };
+}
+
+function applyApiKeyInfo(info: MistralApiKeyInfo): void {
+  apiKeyHasStoredKey = info.hasKey;
+  savedKeyPreview = info.preview;
+}
+
+function updateApiKeyUi(): void {
+  const editViewVisible = isApiKeyEditViewVisible();
+  const hideStatus = shouldHideApiKeyStatus();
+
+  apiKeySavedView.classList.toggle("hidden", editViewVisible);
+  apiKeyEditView.classList.toggle("hidden", !editViewVisible);
+
+  if (apiKeyHasStoredKey && !editViewVisible) {
+    apiKeyPreviewEl.textContent = savedKeyPreview ?? "**...****";
+  }
+
+  if (hideStatus) {
+    apiKeyStatus.classList.add("hidden");
+  } else if (apiKeyDraftError && editViewVisible) {
+    apiKeyStatus.classList.remove("hidden");
+    apiKeyStatus.textContent = apiKeyDraftError;
+    apiKeyStatus.classList.remove("settings-section__status--ok", "settings-section__status--missing");
+    apiKeyStatus.classList.add("settings-section__status--invalid");
+  } else if (apiKeyHasStoredKey && !editViewVisible) {
+    apiKeyStatus.classList.remove("hidden");
+    apiKeyStatus.classList.remove("settings-section__status--missing", "settings-section__status--invalid");
+
+    if (apiKeyValidationState === "checking") {
+      apiKeyStatus.textContent = t("apiKeyHintChecking");
+      apiKeyStatus.classList.remove("settings-section__status--ok");
+    } else if (apiKeyValidationState === "invalid") {
+      apiKeyStatus.textContent = t("apiKeyHintInvalid");
+      apiKeyStatus.classList.add("settings-section__status--invalid");
+      apiKeyStatus.classList.remove("settings-section__status--ok");
+    } else {
+      apiKeyStatus.textContent = t("apiKeyHintConfigured");
+      apiKeyStatus.classList.add("settings-section__status--ok");
+    }
+  } else if (!apiKeyHasStoredKey) {
+    apiKeyStatus.classList.remove("hidden");
+    apiKeyStatus.textContent = t("apiKeyHintMissing");
+    apiKeyStatus.classList.remove("settings-section__status--ok", "settings-section__status--invalid");
+    apiKeyStatus.classList.add("settings-section__status--missing");
+  } else {
+    apiKeyStatus.classList.add("hidden");
+  }
+
+  const showCancel = editViewVisible && (isReplacingApiKey || apiKeyHasUnsavedDraft());
+  cancelApiKeyButton.classList.toggle("hidden", !showCancel);
+  saveApiKeyButton.disabled = isSavingApiKey || !apiKeyHasUnsavedDraft();
+  saveApiKeyButton.textContent = isSavingApiKey ? t("saveApiKeyValidating") : t("saveApiKey");
+}
+
+async function refreshApiKeyState(validateStored = false): Promise<void> {
+  const info = normalizeApiKeyInfo(await invoke("get_mistral_api_key_info"));
+  applyApiKeyInfo(info);
+  isReplacingApiKey = false;
+  apiKeyInput.value = "";
+  setApiKeyDraftError(null);
+  apiKeyValidationState = info.hasKey ? "unknown" : "unknown";
+  updateApiKeyUi();
+
+  if (validateStored && info.hasKey) {
+    await validateStoredApiKey();
+  }
+}
+
+function promptHasUnsavedChanges(): boolean {
+  return promptInput.value !== savedPrompt;
+}
+
+function setPromptDraftError(message: string | null): void {
+  promptDraftError = message;
+}
+
+function updatePromptUi(): void {
+  const isDirty = promptHasUnsavedChanges();
+
+  promptInput.classList.toggle("settings-section__textarea--dirty", isDirty);
+  cancelPromptButton.classList.toggle("hidden", !isDirty);
+  savePromptButton.disabled = !isDirty || promptInput.value.trim().length === 0;
+
+  promptStatus.classList.remove("hidden", "settings-section__status--ok", "settings-section__status--unsaved", "settings-section__status--invalid");
+
+  if (promptDraftError) {
+    promptStatus.textContent = promptDraftError;
+    promptStatus.classList.add("settings-section__status--invalid");
+  } else if (isDirty) {
+    promptStatus.textContent = t("promptHintUnsaved");
+    promptStatus.classList.add("settings-section__status--unsaved");
+  } else {
+    promptStatus.textContent = t("promptHintSaved");
+    promptStatus.classList.add("settings-section__status--ok");
+  }
+}
+
+async function refreshPromptState(): Promise<void> {
+  const prompt = await invoke<string>("get_prompt");
+  savedPrompt = prompt;
+  promptInput.value = prompt;
+  setPromptDraftError(null);
+  updatePromptUi();
+}
+
+async function validateStoredApiKey(): Promise<void> {
+  apiKeyValidationState = "checking";
+  updateApiKeyUi();
+
+  try {
+    await invoke("validate_stored_mistral_api_key");
+    apiKeyValidationState = "valid";
+  } catch (error) {
+    apiKeyValidationState = "invalid";
+    console.error(translateBackendError(error instanceof Error ? error.message : String(error)));
+  }
+
+  updateApiKeyUi();
+}
+
+async function refreshSettingsState(): Promise<void> {
+  try {
+    await Promise.all([refreshPromptState(), refreshApiKeyState(true)]);
+  } catch (error) {
+    console.error(translateBackendError(error instanceof Error ? error.message : String(error)));
+  }
+}
+
+function hasUnsavedSettingsChanges(): boolean {
+  return apiKeyHasUnsavedDraft() || promptHasUnsavedChanges();
+}
+
+async function openSettings(): Promise<void> {
+  settingsModal.classList.remove("hidden");
+  await refreshSettingsState();
+}
+
+async function requestCloseSettings(): Promise<void> {
+  if (hasUnsavedSettingsChanges()) {
+    const discard = await confirm(t("unsavedSettingsWarning"), {
+      title: t("settingsTitle"),
+      kind: "warning",
+      okLabel: t("discardChanges"),
+      cancelLabel: t("keepEditing"),
+    });
+    if (!discard) {
+      return;
+    }
+  }
+
+  isReplacingApiKey = false;
+  apiKeyInput.value = "";
+  promptInput.value = savedPrompt;
+  setPromptDraftError(null);
+  updatePromptUi();
+  settingsModal.classList.add("hidden");
+}
+
+function startReplaceApiKey(): void {
+  isReplacingApiKey = true;
+  apiKeyInput.value = "";
+  setApiKeyDraftError(null);
+  updateApiKeyUi();
+  apiKeyInput.focus();
+}
+
+function cancelApiKeyEdit(): void {
+  isReplacingApiKey = false;
+  apiKeyInput.value = "";
+  setApiKeyDraftError(null);
+  updateApiKeyUi();
+}
+
+async function savePrompt(): Promise<void> {
+  const prompt = promptInput.value;
+  if (prompt.trim().length === 0) {
+    return;
+  }
+
+  try {
+    await invoke("set_prompt", { prompt });
+    savedPrompt = prompt;
+    setPromptDraftError(null);
+    updatePromptUi();
+  } catch (error) {
+    const message = translateBackendError(error instanceof Error ? error.message : String(error));
+    setPromptDraftError(message);
+    updatePromptUi();
+  }
+}
+
+function cancelPromptEdit(): void {
+  promptInput.value = savedPrompt;
+  setPromptDraftError(null);
+  updatePromptUi();
+}
+
+async function saveApiKey(): Promise<void> {
+  const apiKey = apiKeyInput.value.trim();
+  if (!apiKey) {
+    return;
+  }
+
+  isSavingApiKey = true;
+  setApiKeyDraftError(null);
+  updateApiKeyUi();
+
+  try {
+    await invoke("validate_mistral_api_key", { apiKey });
+    const info = normalizeApiKeyInfo(await invoke("set_mistral_api_key", { apiKey }));
+    applyApiKeyInfo(info);
+    isReplacingApiKey = false;
+    apiKeyInput.value = "";
+    isSavingApiKey = false;
+    apiKeyValidationState = "valid";
+    setApiKeyDraftError(null);
+    updateApiKeyUi();
+    void validateStoredApiKey();
+  } catch (error) {
+    isSavingApiKey = false;
+    const message = translateBackendError(error instanceof Error ? error.message : String(error));
+    setApiKeyDraftError(message);
+    updateApiKeyUi();
+  }
+}
+
+async function clearApiKey(): Promise<void> {
+  try {
+    await invoke("clear_mistral_api_key");
+    apiKeyHasStoredKey = false;
+    savedKeyPreview = null;
+    isReplacingApiKey = false;
+    apiKeyValidationState = "unknown";
+    apiKeyInput.value = "";
+    setApiKeyDraftError(null);
+    updateApiKeyUi();
+  } catch (error) {
+    console.error(translateBackendError(error instanceof Error ? error.message : String(error)));
+  }
+}
+
 function applyProgressUpdate(event: ProcessProgressEvent) {
   const file = files.find((entry) => entry.path === event.path);
   if (!file) {
@@ -183,16 +459,14 @@ function applyProgressUpdate(event: ProcessProgressEvent) {
 }
 
 function fileProgressBarHtml(file: FileEntry): string {
-  if (file.status === "pending") {
+  if (file.status === "pending" || file.status === "done") {
     return "";
   }
 
   const modifier =
-    file.status === "done"
-      ? "progress-bar--done"
-      : file.status === "error"
-        ? "progress-bar--error"
-        : "progress-bar--active";
+    file.status === "error"
+      ? "progress-bar--error"
+      : "progress-bar--active";
 
   return `
     <div class="progress-bar progress-bar--file ${modifier}">
@@ -232,10 +506,9 @@ function renderFileList() {
 
     item.innerHTML = `
       <div class="file-item__info">
-        <p class="file-item__name" title="${file.path}">${fileNameHtml(file)}</p>
-        <p class="file-item__meta">
-          <span>${formatFileSize(file.size)}</span>
-          <span class="file-item__status file-item__status--${file.status}">${statusLabel(file)}</span>
+        <p class="file-item__name" title="${file.path}">
+          <span class="file-item__name-text">${fileNameHtml(file)}</span>
+          ${file.status === "done" ? `<span class="file-item__done">${t("fileDoneLabel")}</span>` : ""}
         </p>
         ${fileProgressBarHtml(file)}
       </div>
@@ -435,8 +708,20 @@ function applyStaticTranslations(): void {
   clearAllButton.textContent = t("clearAll");
   selectButton.textContent = t("selectPdfFiles");
   addMoreButton.textContent = t("addMoreFiles");
+  settingsButton.setAttribute("aria-label", t("openSettingsAria"));
+  document.querySelector<HTMLElement>("#settingsTitle")!.textContent = t("settingsTitle");
+  document.querySelector<HTMLElement>("#promptLabelText")!.textContent = t("promptLabel");
+  savePromptButton.textContent = t("savePrompt");
+  cancelPromptButton.textContent = t("cancelPromptEdit");
+  document.querySelector<HTMLElement>("#apiKeyLabelText")!.textContent = t("apiKeyLabel");
+  apiKeyInput.placeholder = t("apiKeyPlaceholderMissing");
+  saveApiKeyButton.textContent = t("saveApiKey");
+  replaceApiKeyButton.textContent = t("replaceApiKey");
+  cancelApiKeyButton.textContent = t("cancelApiKeyEdit");
+  clearApiKeyButton.textContent = t("clearApiKey");
   cancelProcessButton.textContent = t("cancelProcessing");
   cancelProcessButton.setAttribute("aria-label", t("cancelProcessingAria"));
+  closeSettingsButton.setAttribute("aria-label", t("closeSettingsAria"));
   document.querySelector<HTMLElement>(".drop-panel__hint")!.textContent = t("dropHint");
 }
 
@@ -469,6 +754,62 @@ window.addEventListener("DOMContentLoaded", async () => {
 
   cancelProcessButton.addEventListener("click", () => {
     void cancelProcessing();
+  });
+
+  settingsButton.addEventListener("click", () => {
+    void openSettings();
+  });
+
+  closeSettingsButton.addEventListener("click", () => {
+    void requestCloseSettings();
+  });
+
+  settingsBackdrop.addEventListener("click", () => {
+    void requestCloseSettings();
+  });
+
+  savePromptButton.addEventListener("click", () => {
+    void savePrompt();
+  });
+
+  cancelPromptButton.addEventListener("click", () => {
+    cancelPromptEdit();
+  });
+
+  promptInput.addEventListener("input", () => {
+    if (promptDraftError) {
+      setPromptDraftError(null);
+    }
+    updatePromptUi();
+  });
+
+  saveApiKeyButton.addEventListener("click", () => {
+    void saveApiKey();
+  });
+
+  replaceApiKeyButton.addEventListener("click", () => {
+    startReplaceApiKey();
+  });
+
+  cancelApiKeyButton.addEventListener("click", () => {
+    cancelApiKeyEdit();
+  });
+
+  apiKeyInput.addEventListener("input", () => {
+    if (apiKeyDraftError) {
+      setApiKeyDraftError(null);
+    }
+    updateApiKeyUi();
+  });
+
+  clearApiKeyButton.addEventListener("click", () => {
+    void clearApiKey();
+  });
+
+  window.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && !settingsModal.classList.contains("hidden")) {
+      void requestCloseSettings();
+    }
   });
 
   const appWindow = getCurrentWindow();

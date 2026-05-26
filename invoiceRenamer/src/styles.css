@@ -59,15 +59,52 @@ body {
   flex: 0 0 auto;
 }
 
-.text-zone h1 {
+.app-header {
   margin: 0 0 clamp(1rem, 5vw, 15rem);
+}
+
+.centered-box:has(.drop-zone--filled) .app-header {
+  margin-bottom: 1.25rem;
+}
+
+.settings-button {
+  position: fixed;
+  top: 1rem;
+  right: 1rem;
+  z-index: 10;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  padding: 0;
+  border: none;
+  border-radius: 0.5rem;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.settings-button__icon {
+  width: 1.35rem;
+  height: 1.35rem;
+}
+
+.settings-button:hover {
+  background-color: #ececec;
+  color: #666;
+}
+
+.text-zone h1 {
+  margin: 0;
   color: var(--primary-color);
   font-size: clamp(2rem, 4vw, 3.125rem);
   font-weight: 600;
+  line-height: 1;
 }
 
 .centered-box:has(.drop-zone--filled) .text-zone h1 {
-  margin-bottom: 1.25rem;
   font-size: clamp(1.75rem, 3vw, 2.5rem);
 }
 
@@ -184,6 +221,9 @@ body {
 }
 
 .btn-outline {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   padding: 0.55rem 1.35rem;
   background-color: white;
   color: var(--primary-color);
@@ -191,6 +231,8 @@ body {
   border-radius: 999px;
   font-size: 0.95rem;
   font-weight: 500;
+  line-height: 1;
+  box-sizing: border-box;
   cursor: pointer;
   transition: background-color 0.2s ease;
 }
@@ -402,6 +444,9 @@ body {
 }
 
 .file-item__name {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
   margin: 0;
   font-size: 0.875rem;
   font-weight: 600;
@@ -410,11 +455,23 @@ body {
   min-width: 0;
 }
 
+.file-item__name-text {
+  flex: 1;
+  min-width: 0;
+}
+
 .file-item__name-current {
   display: block;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.file-item__done {
+  flex-shrink: 0;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #2e8b57;
 }
 
 .file-item__rename {
@@ -451,32 +508,6 @@ body {
   flex: 1 1 auto;
 }
 
-.file-item__meta {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  margin: 0.05rem 0 0;
-  font-size: 0.75rem;
-  line-height: 1.2;
-  color: var(--text-muted);
-}
-
-.file-item__status--processing {
-  color: var(--primary-color);
-}
-
-.file-item__status--done {
-  color: #2e8b57;
-}
-
-.file-item__status--error {
-  color: #c0392b;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 14rem;
-}
-
 .file-item__remove {
   display: inline-flex;
   flex-shrink: 0;
@@ -506,4 +537,224 @@ body {
   stroke: currentColor;
   stroke-width: 2;
   stroke-linecap: round;
+}
+
+.settings-modal {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  z-index: 20;
+}
+
+.settings-modal__backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgb(0 0 0 / 35%);
+}
+
+.settings-modal__panel {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: 90vw;
+  max-width: 90vw;
+  height: 90dvh;
+  max-height: 90dvh;
+  overflow: hidden;
+  background: white;
+  border-radius: var(--border-radius);
+  padding: 1.25rem 1.35rem;
+  box-shadow: 0 10px 30px rgb(0 0 0 / 18%);
+}
+
+.settings-modal__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.75rem;
+}
+
+.settings-modal__title {
+  margin: 0;
+  font-size: 1.1rem;
+  color: #1a1a1a;
+}
+
+.settings-modal__close {
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 50%;
+  font-size: 1.2rem;
+  cursor: pointer;
+}
+
+.settings-modal__close:hover {
+  background: #f3f3f3;
+}
+
+.settings-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  margin-top: 0.85rem;
+  flex-shrink: 0;
+}
+
+.settings-section--prompt {
+  flex: 1;
+  min-height: 0;
+}
+
+.settings-section__label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.settings-section__label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.98rem;
+  color: #111;
+  font-weight: 700;
+}
+
+.settings-section__label-icon {
+  width: 1.15rem;
+  height: 1.15rem;
+  flex-shrink: 0;
+  color: #111;
+}
+
+.settings-section__label-icon [stroke] {
+  stroke-width: 2;
+}
+
+.settings-section__status {
+  flex-shrink: 0;
+  font-size: 0.78rem;
+  font-weight: 500;
+}
+
+.settings-section__status--missing {
+  color: var(--text-muted);
+}
+
+.settings-section__status--ok {
+  color: #2e8b57;
+}
+
+.settings-section__status--unsaved {
+  color: #b45309;
+}
+
+.settings-section__status--invalid {
+  color: #c0392b;
+}
+
+.settings-section__actions {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.settings-section__delete {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2.375rem;
+  padding: 0 1.1rem;
+  background-color: white;
+  color: #c0392b;
+  border: 1.5px solid #e57373;
+  border-radius: 999px;
+  font-size: 0.92rem;
+  font-weight: 500;
+  line-height: 1;
+  box-sizing: border-box;
+  cursor: pointer;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.settings-section__delete:hover {
+  background-color: #fff5f5;
+  border-color: #c0392b;
+}
+
+.api-key-saved-view,
+.api-key-edit-view {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.api-key-preview {
+  font-family: inherit;
+  font-size: 0.92rem;
+  color: #666;
+  background: #f7f7f8;
+  border: 1px solid #e4e4e7;
+  border-radius: 10px;
+  padding: 0.65rem 0.75rem;
+  user-select: none;
+}
+
+.settings-section__cancel {
+  padding: 0.55rem 1.1rem;
+  background: transparent;
+  color: #666;
+  border: none;
+  border-radius: 999px;
+  font-size: 0.92rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.settings-section__cancel:hover {
+  background-color: #f3f3f3;
+  color: #333;
+}
+
+.settings-section__textarea,
+.settings-section__input {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid #ddd;
+  border-radius: 10px;
+  padding: 0.6rem 0.7rem;
+  font-family: inherit;
+  font-size: 0.92rem;
+}
+
+.settings-section__textarea {
+  flex: 1;
+  min-height: 0;
+  resize: none;
+  overflow-y: auto;
+}
+
+.settings-section__textarea--dirty {
+  border-color: #d4a574;
+  background-color: #fffdf9;
+}
+
+.settings-section__action {
+  align-self: flex-start;
+}
+
+.settings-section__action.btn-outline {
+  min-height: 2.375rem;
+  padding: 0 1.35rem;
+  font-size: 0.92rem;
+  line-height: 1;
+  box-sizing: border-box;
+  white-space: nowrap;
 }

@@ -58,6 +58,51 @@ fn cancel_processing(
     let _ = app.emit("process-cancelled", ());
 }
 
+#[tauri::command]
+fn get_prompt(app: tauri::AppHandle) -> Result<String, String> {
+    mistral::load_prompt(&app)
+}
+
+#[tauri::command]
+fn set_prompt(app: tauri::AppHandle, prompt: String) -> Result<(), String> {
+    mistral::save_prompt(&app, &prompt)
+}
+
+#[tauri::command]
+fn get_mistral_api_key_info() -> Result<mistral::MistralApiKeyInfo, String> {
+    mistral::get_api_key_info()
+}
+
+#[tauri::command]
+fn get_mistral_api_key_preview() -> Result<Option<String>, String> {
+    mistral::get_api_key_preview()
+}
+
+#[tauri::command]
+async fn validate_mistral_api_key(api_key: String) -> Result<(), String> {
+    mistral::validate_api_key(&api_key).await
+}
+
+#[tauri::command]
+async fn validate_stored_mistral_api_key() -> Result<(), String> {
+    mistral::validate_stored_api_key().await
+}
+
+#[tauri::command]
+fn has_mistral_api_key() -> bool {
+    mistral::has_api_key()
+}
+
+#[tauri::command]
+fn set_mistral_api_key(api_key: String) -> Result<mistral::MistralApiKeyInfo, String> {
+    mistral::set_api_key(&api_key)
+}
+
+#[tauri::command]
+fn clear_mistral_api_key() -> Result<(), String> {
+    mistral::clear_api_key()
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -68,7 +113,16 @@ pub fn run() {
             get_system_locale,
             get_files_info,
             process_invoices,
-            cancel_processing
+            cancel_processing,
+            get_prompt,
+            set_prompt,
+            get_mistral_api_key_info,
+            get_mistral_api_key_preview,
+            validate_mistral_api_key,
+            validate_stored_mistral_api_key,
+            has_mistral_api_key,
+            set_mistral_api_key,
+            clear_mistral_api_key
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

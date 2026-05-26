@@ -1,11 +1,17 @@
-1. tester sans la liste des fournisvseurs
-2. paraléliser les traitements
-3. gérer rate limite api => avec un modèle small en particulier, plus le pb
+Ajouter des setting (engrenage) pour :
+- Ajouter prompt perso que l'utilisateur peu saisir depuis le front
+- Gérer clefs API
+J'ai déplacé prompt.txt dans le dossier du projet et supprimé le .env
+
+Ajouter icon et soigner nom
+Mettre en place tests unitaires et fonctionnels
+Audir sécu code
+
+Police de caractère un peu arrondi. 
+Gérer dark mode.
+Priompt rich format md
 
 
-UI : drag and drop
+Ajouter log/historique des traitements
 
-Première version avec sélection de fichier uniquement (sans drag and drop) et barre de progression global uniquement
-
-Tauri RUST Front en React
-Electron
+Renommer facture en null si erreur. Afficher la progress bar comme complette et un statut "Erreur"
