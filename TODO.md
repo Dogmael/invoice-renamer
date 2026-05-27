@@ -1,23 +1,14 @@
-Ajouter des setting (engrenage) pour :
-- Ajouter prompt perso que l'utilisateur peu saisir depuis le front
-- Gérer clefs API
-J'ai déplacé prompt.txt dans le dossier du projet et supprimé le .env
+Verifier commit git que aucune info perso et mettre en place CI/CD.
 
-Ajouter icon et soigner nom
-Mettre en place tests unitaires et fonctionnels
+Basculer inférence en local
+Rendre dispo l'application sur mon site perso
+Ajouter log/historique des traitements
+Mettre en place tests unitaires et fonctionnels et QA
+Remplacer le full prompt par des instruction personnalisée ?
 Audir sécu code
-
+Ajouter icon et soigner nom
+Mettre prompt perso pour les choses du genre : "remboursé par virement à Tiphaine le 22/04/2026".
 Police de caractère un peu arrondi. 
 Gérer dark mode.
-
-Remplacer le full prompt par des instruction personnalisées.
-
-Ajouter log/historique des traitements
-
-Mettre prompt perso pour les choses du genre : "remboursé par virement à Tiphaine le 22/04/2026".
-
 Afficher les nom complet au survol. Un hint sur le logo setting ?
-
 MAJ auto soft
-
-Verifier commit git que aucune info perso et mettre en place CI/CD.

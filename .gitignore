@@ -1,4 +1,3 @@
-/invoiceRenamer/node_modules
 /invoiceRenamer/dist
 /Raw invoices example
 Noms établissements.txt
@@ -9,3 +8,9 @@ Validation des factures.pdf
 prompt.txt
 fournisseurs.txt
 *.png
+**/node_modules
+**/target
+**/.env
+**/.env.*
+!.env.example
+**/gen/schemas
