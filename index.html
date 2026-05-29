@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="">
+
+<head>
+  <meta charset="UTF-8" />
+  <link rel="stylesheet" href="/src/styles.css" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>InvoiceRenamer</title>
+  <script type="module" src="/src/main.ts" defer></script>
+</head>
+
+<body>
+  <button class="settings-button" id="settingsButton" type="button" aria-label="Open settings">
+    <svg class="settings-button__icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" aria-hidden="true">
+      <path fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"
+        d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
+      <circle fill="none" stroke="currentColor" stroke-width="1.5" cx="12" cy="12" r="3" />
+    </svg>
+  </button>
+
+  <div class="page-container">
+    <div class="centered-box">
+      <div class="text-zone">
+        <div class="app-header">
+          <h1>InvoiceRenamer</h1>
+        </div>
+      </div>
+
+      <div class="files-toolbar" id="filesToolbar">
+        <button class="clear-all-button" id="clearAllButton" type="button">Clear all</button>
+      </div>
+
+      <div class="drop-zone-container" id="dropZoneContainer">
+        <div class="drop-zone" id="dropZone">
+          <div class="drop-zone-content" id="dropZoneContent">
+            <div class="drop-panel drop-panel--empty" id="uploadZone">
+              <svg class="drop-panel__icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640" aria-hidden="true">
+                <path
+                  d="M320 96L192 96C174.3 96 160 110.3 160 128L160 512C160 529.7 174.3 544 192 544L448 544C465.7 544 480 529.7 480 512L480 256L384 256C348.7 256 320 227.3 320 192L320 96zM466.7 224L352 109.3L352 192C352 209.7 366.3 224 384 224L466.7 224zM128 128C128 92.7 156.7 64 192 64L325.5 64C342.5 64 358.8 70.7 370.8 82.7L493.3 205.3C505.3 217.3 512 233.6 512 250.6L512 512C512 547.3 483.3 576 448 576L192 576C156.7 576 128 547.3 128 512L128 128z" />
+              </svg>
+              <button class="btn-outline" id="selectButton" type="button">Select PDF files</button>
+              <p class="drop-panel__hint">or drag and drop files here</p>
+            </div>
+          </div>
+
+          <div class="files-view hidden" id="filesView">
+            <ul class="file-list" id="fileList"></ul>
+
+            <div class="drop-panel" id="addMoreZone">
+              <svg class="drop-panel__icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640" aria-hidden="true">
+                <path
+                  d="M320 96L192 96C174.3 96 160 110.3 160 128L160 512C160 529.7 174.3 544 192 544L448 544C465.7 544 480 529.7 480 512L480 256L384 256C348.7 256 320 227.3 320 192L320 96zM466.7 224L352 109.3L352 192C352 209.7 366.3 224 384 224L466.7 224zM128 128C128 92.7 156.7 64 192 64L325.5 64C342.5 64 358.8 70.7 370.8 82.7L493.3 205.3C505.3 217.3 512 233.6 512 250.6L512 512C512 547.3 483.3 576 448 576L192 576C156.7 576 128 547.3 128 512L128 128z" />
+              </svg>
+              <button class="btn-outline" id="addMoreButton" type="button">Add more files</button>
+            </div>
+
+            <div class="process-actions" id="processActions">
+              <button class="process-button" id="processButton" type="button">
+                <span class="process-button__fill" id="processButtonFill"></span>
+                <span class="process-button__label" id="processButtonLabel">Process 0 files</span>
+              </button>
+              <button
+                class="process-cancel-button hidden"
+                id="cancelProcessButton"
+                type="button"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="settings-modal hidden" id="settingsModal" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
+    <div class="settings-modal__backdrop" id="settingsBackdrop"></div>
+    <div class="settings-modal__panel">
+      <div class="settings-modal__header">
+        <h2 class="settings-modal__title" id="settingsTitle">Settings</h2>
+        <button class="settings-modal__close" id="closeSettingsButton" type="button" aria-label="Close settings">×</button>
+      </div>
+
+      <section class="settings-section" id="apiKeySection">
+        <div class="settings-section__label-row">
+          <label class="settings-section__label" for="apiKeyInput">
+            <svg class="settings-section__label-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" aria-hidden="true">
+              <path fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" d="M2.586 17.414A2 2 0 0 0 2 18.828V21a1 1 0 0 0 1 1h3a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h1a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h.172a2 2 0 0 0 1.414-.586l.814-.814a6.5 6.5 0 1 0-4-4z" />
+              <circle cx="16.5" cy="7.5" r="1.5" fill="currentColor"></circle>
+            </svg>
+            <span id="apiKeyLabelText">Mistral API key</span>
+          </label>
+        </div>
+
+        <div class="api-key-saved-view hidden" id="apiKeySavedView">
+          <div class="api-key-preview" id="apiKeyPreviewEl"></div>
+          <div class="settings-section__actions">
+            <button class="btn-outline settings-section__action" id="replaceApiKeyButton" type="button">Replace key</button>
+            <button class="settings-section__delete" id="clearApiKeyButton" type="button">Delete key</button>
+          </div>
+        </div>
+
+        <div class="api-key-edit-view hidden" id="apiKeyEditView">
+          <input class="settings-section__input" id="apiKeyInput" type="password" autocomplete="off" placeholder="Paste your API key" />
+          <div class="settings-section__actions">
+            <button class="btn-outline settings-section__action" id="saveApiKeyButton" type="button">Save key</button>
+            <button class="btn-outline settings-section__action hidden" id="cancelApiKeyButton" type="button">Cancel</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="settings-section settings-section--prompt">
+        <div class="settings-section__label-row">
+          <label class="settings-section__label" for="promptInput">
+            <svg class="settings-section__label-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" aria-hidden="true">
+              <path fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2" />
+              <path fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" d="M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v0a2 2 0 0 1-2 2h-2a2 2 0 0 1-2-2z" />
+              <path fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" d="M9 12h6M9 16h4" />
+            </svg>
+            <span id="promptLabelText">Prompt</span>
+          </label>
+        </div>
+        <div class="prompt-field">
+          <span class="prompt-field__saved hidden" id="promptSavedStatus" aria-live="polite">Saved</span>
+          <textarea class="settings-section__textarea" id="promptInput" rows="14"></textarea>
+        </div>
+      </section>
+    </div>
+  </div>
+</body>
+
+</html>
