@@ -1,3 +1,0 @@
-mistralai
-python-dotenv
-pypdfium2

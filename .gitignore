@@ -1,13 +1,10 @@
-/invoiceRenamer/dist
-/Raw invoices example
-Noms établissements.txt
+/dist
+/invoices examples
 Validation des factures.pdf
 .env
 .DS_Store
 *.pdf
 prompt.txt
-fournisseurs.txt
-*.png
 **/node_modules
 **/target
 **/.env
