@@ -1,6 +1,7 @@
 Verifier commit git que aucune info perso et mettre en place CI/CD.
 
 Basculer inférence en local
+Ajouter licence et readme
 Rendre dispo l'application sur mon site perso
 Ajouter log/historique des traitements
 Mettre en place tests unitaires et fonctionnels et QA
