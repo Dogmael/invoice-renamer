@@ -1,10 +1,10 @@
 :root {
-    --primary-color: #0884c3;
+    --primary-color: #0b78b3;
     --border-radius: 15px;
-    --text-muted: #8a8a8a;
-    --border-color: #e8e8e8;
     --surface-muted: #f5fbff;
     --surface-active: #eef7fc;
+    --text-muted: #8a8a8a;
+    --border-color: #e8e8e8;
 }
 
 @font-face {
