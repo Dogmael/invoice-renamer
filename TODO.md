@@ -1,4 +1,3 @@
-Ajouter licence et readme
 Mettre en place tests unitaires et fonctionnels et QA
 Séparer CI : sur commit je test et build, sur tag je release
 Gérer dark mode.
