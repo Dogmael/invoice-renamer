@@ -101,6 +101,15 @@ let apiKeyValidationState: ApiKeyValidationState = "unknown";
 let savedPrompt = "";
 let promptSavePromise: Promise<boolean> | null = null;
 
+function escapeHtml(text: string): string {
+  return text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
 function getGlobalProgressPercent(): number {
   if (!isProcessing || batchTotal === 0) {
     return 0;
@@ -503,14 +512,14 @@ function fileNameHtml(file: FileEntry): string {
   if (file.previousName && file.previousName !== file.name) {
     return `
       <span class="file-item__rename">
-        <span class="file-item__name-old">${file.previousName}</span>
+        <span class="file-item__name-old">${escapeHtml(file.previousName)}</span>
         <span class="file-item__rename-arrow" aria-hidden="true">→</span>
-        <span class="file-item__name-new">${file.name}</span>
+        <span class="file-item__name-new">${escapeHtml(file.name)}</span>
       </span>
     `;
   }
 
-  return `<span class="file-item__name-current">${file.name}</span>`;
+  return `<span class="file-item__name-current">${escapeHtml(file.name)}</span>`;
 }
 
 function renderFileList() {
@@ -539,7 +548,7 @@ function renderFileList() {
 
     item.innerHTML = `
       <div class="file-item__info">
-        <p class="file-item__name" title="${file.path}">
+        <p class="file-item__name" title="${escapeHtml(file.path)}">
           <span class="file-item__name-text">${fileNameHtml(file)}</span>
           ${fileStatusBadgeHtml(file, failedIndexByFileId.get(file.id))}
         </p>

@@ -1,10 +1,10 @@
 mod i18n;
 mod mistral;
+mod path_utils;
 mod pdf_utils;
 mod processor;
 
 use serde::Serialize;
-use std::path::Path;
 use tauri::Emitter;
 
 #[derive(Serialize)]
@@ -24,15 +24,16 @@ fn get_files_info(paths: Vec<String>) -> Result<Vec<FileInfo>, String> {
     paths
         .into_iter()
         .map(|path| {
-            let metadata = std::fs::metadata(&path).map_err(|e| e.to_string())?;
-            let name = Path::new(&path)
+            let pdf_path = path_utils::validate_user_pdf_path(&path)?;
+            let metadata = std::fs::metadata(&pdf_path).map_err(|e| e.to_string())?;
+            let name = pdf_path
                 .file_name()
                 .and_then(|n| n.to_str())
                 .ok_or_else(|| crate::i18n::invalid_file_name(&path))?
                 .to_string();
 
             Ok(FileInfo {
-                path,
+                path: pdf_path.to_string_lossy().to_string(),
                 name,
                 size: metadata.len(),
             })
@@ -114,7 +115,6 @@ pub fn run() {
     tauri::Builder::default()
         .manage(processor::ProcessingState::new())
         .plugin(tauri_plugin_dialog::init())
-        .plugin(tauri_plugin_opener::init())
         .invoke_handler(tauri::generate_handler![
             get_system_locale,
             get_files_info,

@@ -369,31 +369,32 @@ pub async fn process_invoices(
             break;
         }
 
-        let pdf_path = PathBuf::from(&path);
-        if !pdf_path.exists() {
-            let error = crate::i18n::file_not_found(&path);
-            completed_count += 1;
-            emit_progress(
-                &app,
-                progress_event(
-                    path.clone(),
-                    "error",
-                    0,
-                    None,
-                    None,
-                    Some(error.clone()),
-                    Some(completed_count),
-                    Some(total_count),
-                ),
-            );
-            results.push(ProcessFileResult {
-                path,
-                new_path: None,
-                new_name: None,
-                error: Some(error),
-            });
-            continue;
-        }
+        let pdf_path = match crate::path_utils::validate_user_pdf_path(&path) {
+            Ok(pdf_path) => pdf_path,
+            Err(error) => {
+                completed_count += 1;
+                emit_progress(
+                    &app,
+                    progress_event(
+                        path.clone(),
+                        "error",
+                        0,
+                        None,
+                        None,
+                        Some(error.clone()),
+                        Some(completed_count),
+                        Some(total_count),
+                    ),
+                );
+                results.push(ProcessFileResult {
+                    path,
+                    new_path: None,
+                    new_name: None,
+                    error: Some(error),
+                });
+                continue;
+            }
+        };
 
         match process_single_pdf(
             &app,

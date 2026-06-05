@@ -383,7 +383,7 @@ fn mask_api_key(key: &str) -> String {
     let len = chars.len();
 
     if len <= 4 {
-        return format!("**...{key}");
+        return "**...".to_string();
     }
 
     let suffix: String = chars.iter().skip(len - 4).collect();
@@ -409,9 +409,9 @@ mod tests {
     }
 
     #[test]
-    fn api_key_preview_keeps_short_keys_visible() {
+    fn api_key_preview_hides_short_keys() {
         let info = api_key_info_from_key("abc");
-        assert_eq!(info.preview, Some("**...abc".to_string()));
+        assert_eq!(info.preview, Some("**...".to_string()));
     }
 
     #[test]
