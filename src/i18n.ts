@@ -14,6 +14,10 @@ type MessageKey =
   | "settingsTitle"
   | "openSettingsAria"
   | "closeSettingsAria"
+  | "themeLabel"
+  | "themeSystem"
+  | "themeLight"
+  | "themeDark"
   | "promptLabel"
   | "promptSaveSaved"
   | "apiKeyLabel"
@@ -68,6 +72,10 @@ const messages: Record<Locale, Record<MessageKey, string>> = {
     settingsTitle: "Settings",
     openSettingsAria: "Open settings",
     closeSettingsAria: "Close settings",
+    themeLabel: "Appearance",
+    themeSystem: "System",
+    themeLight: "Light",
+    themeDark: "Dark",
     promptLabel: "Prompt",
     promptSaveSaved: "Saved",
     apiKeyLabel: "Mistral API key",
@@ -128,6 +136,10 @@ const messages: Record<Locale, Record<MessageKey, string>> = {
     settingsTitle: "Param\u00e8tres",
     openSettingsAria: "Ouvrir les param\u00e8tres",
     closeSettingsAria: "Fermer les param\u00e8tres",
+    themeLabel: "Apparence",
+    themeSystem: "Syst\u00e8me",
+    themeLight: "Clair",
+    themeDark: "Sombre",
     promptLabel: "Prompt",
     promptSaveSaved: "Enregistr\u00e9",
     apiKeyLabel: "Cl\u00e9 API Mistral",

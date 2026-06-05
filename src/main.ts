@@ -9,6 +9,7 @@ import {
   t,
   translateBackendError,
 } from "./i18n";
+import { getTheme, initTheme, setTheme, type ThemeMode } from "./theme";
 
 type FileStatus = "pending" | "processing" | "done" | "error";
 
@@ -64,6 +65,13 @@ const processButton = document.querySelector<HTMLButtonElement>("#processButton"
 const processButtonFill = document.querySelector<HTMLElement>("#processButtonFill")!;
 const processButtonLabel = document.querySelector<HTMLElement>("#processButtonLabel")!;
 const cancelProcessButton = document.querySelector<HTMLButtonElement>("#cancelProcessButton")!;
+const themeDropdown = document.querySelector<HTMLElement>("#themeDropdown")!;
+const themeDropdownTrigger = document.querySelector<HTMLButtonElement>("#themeDropdownTrigger")!;
+const themeDropdownValue = document.querySelector<HTMLElement>("#themeDropdownValue")!;
+const themeDropdownMenu = document.querySelector<HTMLElement>("#themeDropdownMenu")!;
+const themeOptions = Array.from(
+  document.querySelectorAll<HTMLButtonElement>("#themeDropdownMenu .dropdown__option"),
+);
 const settingsButton = document.querySelector<HTMLButtonElement>("#settingsButton")!;
 const settingsModal = document.querySelector<HTMLElement>("#settingsModal")!;
 const settingsBackdrop = document.querySelector<HTMLElement>("#settingsBackdrop")!;
@@ -321,7 +329,46 @@ async function requestCloseSettings(): Promise<void> {
 
   isReplacingApiKey = false;
   apiKeyInput.value = "";
+  closeThemeDropdown();
   settingsModal.classList.add("hidden");
+}
+
+function themeOptionLabel(theme: ThemeMode): string {
+  const labels: Record<ThemeMode, "themeSystem" | "themeLight" | "themeDark"> = {
+    system: "themeSystem",
+    light: "themeLight",
+    dark: "themeDark",
+  };
+
+  return t(labels[theme]);
+}
+
+function updateThemeDropdown() {
+  const activeTheme = getTheme();
+  themeDropdownValue.textContent = themeOptionLabel(activeTheme);
+
+  themeOptions.forEach((option) => {
+    const theme = option.dataset.theme as ThemeMode | undefined;
+    const isSelected = theme === activeTheme;
+    option.classList.toggle("dropdown__option--selected", isSelected);
+    option.setAttribute("aria-selected", String(isSelected));
+    if (theme) {
+      option.textContent = themeOptionLabel(theme);
+    }
+  });
+}
+
+function setThemeDropdownOpen(open: boolean) {
+  themeDropdownMenu.classList.toggle("hidden", !open);
+  themeDropdownTrigger.setAttribute("aria-expanded", String(open));
+}
+
+function closeThemeDropdown() {
+  setThemeDropdownOpen(false);
+}
+
+function toggleThemeDropdown() {
+  setThemeDropdownOpen(themeDropdownMenu.classList.contains("hidden"));
 }
 
 function startReplaceApiKey(): void {
@@ -694,6 +741,8 @@ function applyStaticTranslations(): void {
   clearAllButton.textContent = t("clearAll");
   selectButton.textContent = t("selectPdfFiles");
   addMoreButton.textContent = t("addMoreFiles");
+  document.querySelector<HTMLElement>("#themeLabelText")!.textContent = t("themeLabel");
+  updateThemeDropdown();
   settingsButton.setAttribute("aria-label", t("openSettingsAria"));
   document.querySelector<HTMLElement>("#settingsTitle")!.textContent = t("settingsTitle");
   document.querySelector<HTMLElement>("#promptLabelText")!.textContent = t("promptLabel");
@@ -711,6 +760,7 @@ function applyStaticTranslations(): void {
 }
 
 window.addEventListener("DOMContentLoaded", async () => {
+  initTheme();
   await initLocale();
   applyStaticTranslations();
   await listen<ProcessProgressEvent>("process-progress", (event) => {
@@ -739,6 +789,31 @@ window.addEventListener("DOMContentLoaded", async () => {
 
   cancelProcessButton.addEventListener("click", () => {
     void cancelProcessing();
+  });
+
+  themeDropdownTrigger.addEventListener("click", () => {
+    toggleThemeDropdown();
+  });
+
+  themeOptions.forEach((option) => {
+    option.addEventListener("click", () => {
+      const theme = option.dataset.theme as ThemeMode | undefined;
+      if (!theme) {
+        return;
+      }
+
+      setTheme(theme);
+      updateThemeDropdown();
+      closeThemeDropdown();
+    });
+  });
+
+  document.addEventListener("click", (event) => {
+    if (!(event.target instanceof Node) || themeDropdown.contains(event.target)) {
+      return;
+    }
+
+    closeThemeDropdown();
   });
 
   settingsButton.addEventListener("click", () => {
@@ -782,7 +857,16 @@ window.addEventListener("DOMContentLoaded", async () => {
   });
 
   window.addEventListener("keydown", (event) => {
-    if (event.key === "Escape" && !settingsModal.classList.contains("hidden")) {
+    if (event.key !== "Escape") {
+      return;
+    }
+
+    if (!themeDropdownMenu.classList.contains("hidden")) {
+      closeThemeDropdown();
+      return;
+    }
+
+    if (!settingsModal.classList.contains("hidden")) {
       void requestCloseSettings();
     }
   });
