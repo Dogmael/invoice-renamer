@@ -72,6 +72,7 @@ const themeDropdownMenu = document.querySelector<HTMLElement>("#themeDropdownMen
 const themeOptions = Array.from(
   document.querySelectorAll<HTMLButtonElement>("#themeDropdownMenu .dropdown__option"),
 );
+const settingsTooltipLabel = document.querySelector<HTMLElement>("#settingsTooltip")!;
 const settingsButton = document.querySelector<HTMLButtonElement>("#settingsButton")!;
 const settingsModal = document.querySelector<HTMLElement>("#settingsModal")!;
 const settingsBackdrop = document.querySelector<HTMLElement>("#settingsBackdrop")!;
@@ -744,6 +745,7 @@ function applyStaticTranslations(): void {
   document.querySelector<HTMLElement>("#themeLabelText")!.textContent = t("themeLabel");
   updateThemeDropdown();
   settingsButton.setAttribute("aria-label", t("openSettingsAria"));
+  settingsTooltipLabel.textContent = t("settingsTitle");
   document.querySelector<HTMLElement>("#settingsTitle")!.textContent = t("settingsTitle");
   document.querySelector<HTMLElement>("#promptLabelText")!.textContent = t("promptLabel");
   promptSavedStatus.textContent = t("promptSaveSaved");

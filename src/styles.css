@@ -171,11 +171,45 @@ body {
     margin-bottom: 1.25rem;
 }
 
-.settings-button {
+.settings-tooltip {
     position: fixed;
     top: 1rem;
     right: 1rem;
     z-index: 10;
+}
+
+.settings-tooltip__label {
+    position: absolute;
+    top: calc(100% + 0.4rem);
+    right: 0;
+    padding: 0.35rem 0.55rem;
+    border-radius: 0.4rem;
+    background-color: var(--text-heading);
+    color: var(--bg-surface);
+    font-size: 0.75rem;
+    font-weight: 500;
+    line-height: 1.2;
+    white-space: nowrap;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-0.15rem);
+    transition:
+        opacity 0.15s ease 0.1s,
+        visibility 0.15s ease 0.1s,
+        transform 0.15s ease 0.1s;
+    pointer-events: none;
+    box-shadow: var(--shadow-sm);
+}
+
+.settings-tooltip:hover .settings-tooltip__label,
+.settings-tooltip:focus-within .settings-tooltip__label {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+}
+
+.settings-button {
+    position: static;
     display: inline-flex;
     align-items: center;
     justify-content: center;
