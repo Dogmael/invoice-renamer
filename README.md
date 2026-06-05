@@ -40,6 +40,12 @@ npm run build          # compile le frontend (TypeScript + Vite)
 npm run tauri build    # build l'application desktop
 ```
 
+## Tests
+
+```bash
+npm test               # tests unitaires Rust (processor, i18n, pdf_utils, mistral)
+```
+
 ## CI / Releases
 
 | Événement | Workflow | Action |

@@ -25,3 +25,32 @@ pub fn prompt_save_failed(details: &str) -> String {
 pub fn config_unavailable(details: &str) -> String {
     format!("error.config_unavailable|details={details}")
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn mistral_api_error_includes_status_and_message() {
+        assert_eq!(
+            mistral_api_error(429, "rate limited"),
+            "error.mistral_api|status=429|message=rate limited"
+        );
+    }
+
+    #[test]
+    fn rename_failed_includes_paths_and_details() {
+        assert_eq!(
+            rename_failed("/in/a.pdf", "/in/b.pdf", "permission denied"),
+            "error.rename_failed|from=/in/a.pdf|to=/in/b.pdf|details=permission denied"
+        );
+    }
+
+    #[test]
+    fn file_not_found_includes_path() {
+        assert_eq!(
+            file_not_found("/tmp/missing.pdf"),
+            "error.file_not_found|/tmp/missing.pdf"
+        );
+    }
+}

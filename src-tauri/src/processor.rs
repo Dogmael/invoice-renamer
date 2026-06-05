@@ -424,3 +424,71 @@ pub async fn process_invoices(
 
     Ok(results)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::fs;
+    use std::sync::atomic::Ordering;
+
+    fn temp_test_dir(name: &str) -> PathBuf {
+        let dir = std::env::temp_dir().join(format!(
+            "invoicerenamer_{name}_{}",
+            std::process::id()
+        ));
+        let _ = fs::remove_dir_all(&dir);
+        fs::create_dir_all(&dir).expect("create temp dir");
+        dir
+    }
+
+    #[test]
+    fn sanitize_filename_replaces_special_characters() {
+        assert_eq!(
+            sanitize_filename("Fournisseur #123 (TTC)"),
+            "Fournisseur_123_(TTC)"
+        );
+    }
+
+    #[test]
+    fn sanitize_filename_collapses_spaces_and_underscores() {
+        assert_eq!(sanitize_filename("  foo   bar  "), "foo_bar");
+        assert_eq!(sanitize_filename("a__b"), "a_b");
+    }
+
+    #[test]
+    fn sanitize_filename_trims_outer_underscores() {
+        assert_eq!(sanitize_filename("_invoice_"), "invoice");
+    }
+
+    #[test]
+    fn processing_state_tracks_cancel_flag() {
+        let state = ProcessingState::new();
+        state.begin_batch();
+        assert!(!state.is_cancelled());
+
+        state.request_cancel();
+        assert!(state.is_cancelled());
+        assert!(state.cancel_flag().load(Ordering::SeqCst));
+    }
+
+    #[test]
+    fn failed_filename_base_respects_locale() {
+        assert_eq!(failed_filename_base("fr-FR"), "Echoue");
+        assert_eq!(failed_filename_base("en-US"), "Failed");
+    }
+
+    #[test]
+    fn rename_with_dedup_picks_next_available_name() {
+        let dir = temp_test_dir("rename_dedup");
+        let source = dir.join("invoice.pdf");
+        fs::write(&source, b"source").expect("write source");
+        fs::write(dir.join("target.pdf"), b"existing").expect("write collision");
+
+        let renamed = rename_with_dedup(&source, "target").expect("rename");
+        assert_eq!(renamed, dir.join("target(1).pdf"));
+        assert!(renamed.exists());
+        assert!(!source.exists());
+
+        let _ = fs::remove_dir_all(&dir);
+    }
+}

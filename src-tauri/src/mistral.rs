@@ -396,3 +396,27 @@ pub fn api_key_info_from_key(api_key: &str) -> MistralApiKeyInfo {
         preview: Some(mask_api_key(api_key)),
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn api_key_preview_masks_long_keys() {
+        let info = api_key_info_from_key("abcdefghijklmnop");
+        assert_eq!(info.has_key, true);
+        assert_eq!(info.preview, Some("**...mnop".to_string()));
+    }
+
+    #[test]
+    fn api_key_preview_keeps_short_keys_visible() {
+        let info = api_key_info_from_key("abc");
+        assert_eq!(info.preview, Some("**...abc".to_string()));
+    }
+
+    #[test]
+    fn api_key_preview_trims_whitespace() {
+        let info = api_key_info_from_key("  abcdefghijklmnop  ");
+        assert_eq!(info.preview, Some("**...mnop".to_string()));
+    }
+}

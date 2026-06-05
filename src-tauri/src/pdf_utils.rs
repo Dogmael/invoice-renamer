@@ -23,3 +23,33 @@ pub fn pdf_to_base64(pdf_path: &Path) -> Result<String, String> {
         bytes,
     ))
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::fs;
+
+    #[test]
+    fn extract_returns_error_when_file_is_missing() {
+        let result = extract_native_text_first_page(Path::new("/nonexistent/invoice.pdf"));
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn extract_invalid_pdf_returns_empty_text_without_panicking() {
+        let dir = std::env::temp_dir().join(format!(
+            "invoicerenamer_pdf_{}",
+            std::process::id()
+        ));
+        let _ = fs::remove_dir_all(&dir);
+        fs::create_dir_all(&dir).expect("create temp dir");
+
+        let path = dir.join("invalid.pdf");
+        fs::write(&path, b"not-a-valid-pdf").expect("write invalid pdf");
+
+        let result = extract_native_text_first_page(&path);
+        assert_eq!(result.expect("invalid pdf should not crash extraction"), "");
+
+        let _ = fs::remove_dir_all(&dir);
+    }
+}
