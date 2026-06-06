@@ -14,7 +14,7 @@
     "windows": [
       {
         "title": "invoicerenamer",
-        "fullscreen": true
+        "maximized": true
       }
     ],
     "security": {
