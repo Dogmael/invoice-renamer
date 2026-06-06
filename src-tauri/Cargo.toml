@@ -1,6 +1,6 @@
 [package]
 name = "invoicerenamer"
-version = "0.1.1"
+version = "0.1.2"
 description = "Desktop app to rename invoice PDFs with Mistral OCR and LLM"
 authors = ["Dogmaël DARTIGUE-PEYROU"]
 edition = "2021"
