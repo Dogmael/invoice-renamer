@@ -53,18 +53,35 @@ npm test               # tests unitaires Rust (processor, i18n, pdf_utils, mistr
 | Push / pull request | [`ci.yml`](.github/workflows/ci.yml) | Vérifie le build frontend et Rust (`cargo test`, `cargo build`) |
 | Tag git | [`release.yml`](.github/workflows/release.yml) | Compile et publie les binaires sur GitHub Releases |
 
-Pour publier une version :
+### Monter de version
+
+Le script [`scripts/bump-version.sh`](scripts/bump-version.sh) aligne la version dans tous les fichiers concernés :
+
+- `package.json` et `package-lock.json` (via `npm version`)
+- `src-tauri/Cargo.toml` et `src-tauri/tauri.conf.json`
+- `src-tauri/Cargo.lock` (via `cargo check`)
 
 ```bash
-git tag v0.1.0
-git push origin v0.1.0
+./scripts/bump-version.sh 0.1.1
 ```
+
+Puis committer, tagger et pousser. Le tag git utilise le préfixe `app-v` (la version dans les fichiers reste `0.1.1`) :
+
+```bash
+git add .
+git commit -m "Bump version to 0.1.1"
+git tag app-v0.1.1
+git push origin HEAD && git push origin app-v0.1.1
+```
+
+Le push du tag déclenche [`release.yml`](.github/workflows/release.yml), qui compile et publie les binaires sur GitHub Releases (macOS Intel/ARM, Linux, Windows).
 
 ## Structure du projet
 
 ```
 ├── src/              # Frontend (HTML, CSS, TypeScript)
 ├── src-tauri/        # Backend Rust (Tauri)
+├── scripts/          # Utilitaires (ex. bump-version.sh)
 ├── python draft/     # Prototypes et notebooks de traitement
 └── index.html
 ```
